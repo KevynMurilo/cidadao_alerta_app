@@ -1,7 +1,19 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
-    "version": "1.0.0"
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permitir que o Cidadão Alerta use sua localização."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Precisamos acessar sua câmera para registrar ocorrências.",
+          "photosPermission": "Precisamos acessar suas fotos para anexar à ocorrência."
+        }
+      ]
+    ]
   }
 }
