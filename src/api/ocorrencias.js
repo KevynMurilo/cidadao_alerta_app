@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://10.1.59.59:8080/api';
+const API_BASE_URL = 'http://192.168.18.17:8080/api';
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -17,8 +17,8 @@ export const createOcorrencia = (data) => {
     return apiClient.post('/ocorrencias', data);
 };
 
-export const getOcorrenciaById = (id) => {
-    return apiClient.get(`/ocorrencias/${id}`);
+export const getMinhasOcorrencias = (page = 0, size = 10) => {
+    return apiClient.get(`/ocorrencias/me?page=${page}&size=${size}`);
 };
 
 export const updateOcorrencia = (id, data) => {

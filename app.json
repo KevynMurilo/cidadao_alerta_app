@@ -1,17 +1,20 @@
 {
   "expo": {
+    "name": "cidadao-alerta",
+    "slug": "cidadao-alerta",
+    "version": "1.0.0",
     "plugins": [
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Permitir que o Cidadão Alerta use sua localização."
-        }
-      ],
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Precisamos acessar sua câmera para registrar ocorrências.",
-          "photosPermission": "Precisamos acessar suas fotos para anexar à ocorrência."
+          "photosPermission": "A app necessita de acesso às suas fotos para que possa anexar evidências nas ocorrências.",
+          "cameraPermission": "A app necessita de acesso à sua câmara para que possa tirar fotos para as ocorrências."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "A app necessita da sua localização para registar onde a ocorrência aconteceu."
         }
       ]
     ]
