@@ -43,3 +43,17 @@ export const updateOcorrencia = (id, data) => {
 export const deleteOcorrencia = (id) => {
     return apiClient.delete(`/ocorrencias/${id}`);
 };
+
+export const getOcorrenciaFoto = async (id) => {
+    const response = await apiClient.get(`/ocorrencias/${id}/foto`, {
+        responseType: 'blob',
+    });
+
+    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(response.data);
+    });
+};
+

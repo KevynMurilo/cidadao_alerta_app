@@ -1,209 +1,221 @@
 import React, { useState, useContext, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { AuthContext } from '../context/AuthContext';
-import { getMinhasOcorrencias } from '../api/ocorrencias';
+import { getMinhasOcorrencias, getOcorrenciaFoto } from '../api/ocorrencias';
 import { getHistoricoSincronizacao } from '../api/sincronizacao';
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import OcorrenciaCard from '../components/OcorrenciaCard';
+
+const COLORS = {
+  primary: '#4A90E2',
+  background: '#F7F8FA',
+  card: '#FFFFFF',
+  textPrimary: '#2C3E50',
+  textSecondary: '#7F8C8D',
+  inactive: '#EAEBEE',
+  white: '#FFFFFF',
+  black: '#000000',
+  aberto: '#E74C3C',
+  emAndamento: '#F39C12',
+  finalizado: '#2ECC71',
+};
 
 const MinhasOcorrenciasScreen = ({ navigation }) => {
-    const { userInfo } = useContext(AuthContext);
-    const [activeTab, setActiveTab] = useState('ocorrencias');
-    const [ocorrencias, setOcorrencias] = useState([]);
-    const [historico, setHistorico] = useState([]);
-    const [loading, setLoading] = useState(false);
+  const { userInfo } = useContext(AuthContext);
 
-    const fetchData = async (tab) => {
-        if (!userInfo?.id) return;
-        setLoading(true);
-        try {
-            if (tab === 'ocorrencias') {
-                const response = await getMinhasOcorrencias();
-                setOcorrencias(response.data?.data?.content || []);
-            } else {
-                const response = await getHistoricoSincronizacao(userInfo.id);
-                setHistorico(response.data?.data || []);
-            }
-        } catch (error) {
-            Alert.alert('Erro', `Não foi possível carregar os dados.`);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const [activeTab, setActiveTab] = useState('ocorrencias');
+  const [ocorrencias, setOcorrencias] = useState([]);
+  const [historico, setHistorico] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [imagens, setImagens] = useState({});
 
-    useFocusEffect(
-        useCallback(() => {
-            fetchData(activeTab);
-        }, [activeTab, userInfo])
-    );
+  const fetchImagem = async (id) => {
+    try {
+      const base64 = await getOcorrenciaFoto(id);
+      setImagens((prev) => ({ ...prev, [id]: base64 }));
+    } catch (error) {
+    }
+  };
 
-    const statusConfig = {
-        ABERTO: { color: '#e74c3c', icon: 'alert-circle-outline', text: 'Aberto' },
-        EM_ANDAMENTO: { color: '#f39c12', icon: 'progress-wrench', text: 'Em Andamento' },
-        FINALIZADO: { color: '#2ecc71', icon: 'check-circle-outline', text: 'Finalizado' },
-    };
+  const fetchData = async (tab) => {
+    if (!userInfo) return;
+    setLoading(true);
+    try {
+      if (tab === 'ocorrencias') {
+        const response = await getMinhasOcorrencias();
+        const lista = Array.isArray(response.data?.data?.content)
+          ? response.data.data.content
+          : [];
+        setOcorrencias(lista);
 
-    const renderOcorrenciaItem = ({ item }) => {
-        const config = statusConfig[item.status] || {};
-        const dataFormatada = new Date(item.createdAt).toLocaleDateString('pt-BR');
-        return (
-            <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('OcorrenciaDetalhe', { ocorrenciaId: item.id })}>
-                <View style={styles.cardHeader}>
-                    <Text style={styles.cardCategory}>{item.categoryName}</Text>
-                    <View style={styles.statusContainer}>
-                        <MaterialCommunityIcons name={config.icon} size={16} color={config.color} />
-                        <Text style={[styles.cardStatus, { color: config.color }]}>{config.text}</Text>
-                    </View>
-                </View>
-                <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
-                <Text style={styles.cardDate}>{dataFormatada}</Text>
-            </TouchableOpacity>
-        );
-    };
+        lista.forEach((item) => {
+          if (item.photoUrl && item.photoUrl !== 'string') {
+            fetchImagem(item.id);
+          }
+        });
 
-    const renderHistoricoItem = ({ item }) => (
-        <View style={styles.historyCard}>
-            <MaterialCommunityIcons
-                name={item.success ? "check-circle" : "alert-circle"}
-                size={30}
-                color={item.success ? "#2ecc71" : "#e74c3c"}
-            />
-            <View style={styles.historyTextContainer}>
-                <Text style={styles.historyText}>
-                    Sincronização {item.success ? 'bem-sucedida' : 'falhou'}
-                </Text>
-                <Text style={styles.historyDate}>
-                    {new Date(item.syncDate).toLocaleString('pt-BR')}
-                </Text>
-            </View>
-        </View>
-    );
-    
-    const ListEmptyComponent = ({ message }) => (
-        <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="information-outline" size={50} color="#bdc3c7" />
-            <Text style={styles.emptyText}>{message}</Text>
-        </View>
-    );
+      } else {
+        const response = await getHistoricoSincronizacao(userInfo.id ?? userInfo.userId);
+        const lista = Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
+        setHistorico(lista);
+      }
+    } catch (error) {
+      // console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.tabContainer}>
-                <TouchableOpacity
-                    style={[styles.tab, activeTab === 'ocorrencias' && styles.activeTab]}
-                    onPress={() => setActiveTab('ocorrencias')}
-                >
-                    <Text style={[styles.tabText, activeTab === 'ocorrencias' && styles.activeTabText]}>Ocorrências</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tab, activeTab === 'historico' && styles.activeTab]}
-                    onPress={() => setActiveTab('historico')}
-                >
-                    <Text style={[styles.tabText, activeTab === 'historico' && styles.activeTabText]}>Histórico de Sync</Text>
-                </TouchableOpacity>
-            </View>
+  useFocusEffect(
+    useCallback(() => {
+      fetchData(activeTab);
+    }, [activeTab, userInfo])
+  );
 
-            {loading ? <ActivityIndicator style={{ marginTop: 50}} size="large" color="#3a86f4" /> : (
-                activeTab === 'ocorrencias' ? (
-                    <FlatList
-                        data={ocorrencias}
-                        keyExtractor={item => item.id.toString()}
-                        renderItem={renderOcorrenciaItem}
-                        contentContainerStyle={styles.list}
-                        ListEmptyComponent={<ListEmptyComponent message="Você ainda não registou ocorrências." />}
-                    />
-                ) : (
-                    <FlatList
-                        data={historico}
-                        keyExtractor={item => item.id.toString()}
-                        renderItem={renderHistoricoItem}
-                        contentContainerStyle={styles.list}
-                        ListEmptyComponent={<ListEmptyComponent message="Nenhum histórico de sincronização." />}
-                    />
-                )
-            )}
-        </SafeAreaView>
-    );
+  const handleCardPress = (item) => {
+    if (item.lat && item.lon && item.lat !== 0 && item.lon !== 0) {
+      navigation.navigate('Mapa', {
+        initialRegion: {
+          latitude: item.lat,
+          longitude: item.lon,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        },
+        focoId: item.id,
+      });
+    } else {
+      Alert.alert(
+        'Localização Indisponível',
+        'Esta ocorrência não possui dados de localização para ser exibida no mapa.'
+      );
+    }
+  };
+
+  const renderOcorrenciaItem = ({ item }) => (
+    <OcorrenciaCard
+      item={item}
+      imagem={imagens[item.id]}
+      onPress={() => handleCardPress(item)}
+    />
+  );
+
+  const renderHistoricoItem = ({ item }) => (
+    <View style={styles.historyCard}>
+      <MaterialCommunityIcons
+        name={item.success ? 'check-circle' : 'alert-circle'}
+        size={30}
+        color={item.success ? COLORS.finalizado : COLORS.aberto}
+      />
+      <View style={styles.historyTextContainer}>
+        <Text style={styles.historyText}>
+          Sincronização {item.success ? 'bem-sucedida' : 'falhou'}
+        </Text>
+        <Text style={styles.historyDate}>
+          {new Date(item.syncDate).toLocaleString('pt-BR')}
+        </Text>
+      </View>
+    </View>
+  );
+
+  const ListEmptyComponent = ({ message }) => (
+    <View style={styles.emptyContainer}>
+      <MaterialCommunityIcons name="information-outline" size={50} color="#bdc3c7" />
+      <Text style={styles.emptyText}>{message}</Text>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'ocorrencias' && styles.activeTab]}
+          onPress={() => setActiveTab('ocorrencias')}
+        >
+          <Text style={[styles.tabText, activeTab === 'ocorrencias' && styles.activeTabText]}>
+            Ocorrências
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'historico' && styles.activeTab]}
+          onPress={() => setActiveTab('historico')}
+        >
+          <Text style={[styles.tabText, activeTab === 'historico' && styles.activeTabText]}>
+            Histórico de Sync
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {loading ? (
+        <ActivityIndicator style={{ marginTop: 50 }} size="large" color={COLORS.primary} />
+      ) : activeTab === 'ocorrencias' ? (
+        <FlatList
+          data={ocorrencias}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderOcorrenciaItem}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={<ListEmptyComponent message="Você ainda não registrou ocorrências." />}
+        />
+      ) : (
+        <FlatList
+          data={historico}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderHistoricoItem}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={<ListEmptyComponent message="Nenhum histórico de sincronização." />}
+        />
+      )}
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f0f4f7' },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 15,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderColor: '#eee',
-    },
-    headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#34495e', marginLeft: 15 },
-    tabContainer: {
-        flexDirection: 'row',
-        backgroundColor: '#fff',
-        paddingHorizontal: 20,
-        paddingTop: 10,
-    },
-    tab: {
-        paddingVertical: 12,
-        paddingHorizontal: 15,
-        borderBottomWidth: 3,
-        borderBottomColor: 'transparent',
-        marginHorizontal: 10,
-    },
-    activeTab: {
-        borderBottomColor: '#3a86f4',
-    },
-    tabText: {
-        color: '#7f8c8d',
-        fontWeight: '600',
-        fontSize: 16,
-    },
-    activeTabText: {
-        color: '#3a86f4',
-    },
-    list: { padding: 20, flexGrow: 1 },
-    card: {
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 15,
-        marginBottom: 15,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    cardCategory: { fontSize: 18, fontWeight: 'bold', color: '#34495e' },
-    statusContainer: { flexDirection: 'row', alignItems: 'center' },
-    cardStatus: { fontSize: 14, fontWeight: 'bold', marginLeft: 5 },
-    cardDesc: { fontSize: 15, color: '#555', lineHeight: 22, marginBottom: 10 },
-    cardDate: { fontSize: 13, color: '#7f8c8d', alignSelf: 'flex-end', marginTop: 5 },
-    historyCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 10,
-        marginBottom: 10,
-    },
-    historyTextContainer: { marginLeft: 15, flex: 1 },
-    historyText: { fontSize: 16, fontWeight: '500', color: '#34495e' },
-    historyDate: { fontSize: 12, color: '#7f8c8d', marginTop: 3 },
-    emptyContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    emptyText: { textAlign: 'center', marginTop: 20, fontSize: 16, color: '#95a5a6' },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  tab: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+    marginHorizontal: 10,
+  },
+  activeTab: { borderBottomColor: COLORS.primary },
+  tabText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 16 },
+  activeTabText: { color: COLORS.primary },
+  list: { padding: 20, flexGrow: 1 },
+  historyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  historyTextContainer: { marginLeft: 15, flex: 1 },
+  historyText: { fontSize: 16, fontWeight: '500', color: COLORS.textPrimary },
+  historyDate: { fontSize: 12, color: COLORS.textSecondary, marginTop: 3 },
+  emptyContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: { textAlign: 'center', marginTop: 20, fontSize: 16, color: COLORS.textSecondary },
 });
 
 export default MinhasOcorrenciasScreen;
-

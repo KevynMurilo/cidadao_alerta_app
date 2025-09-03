@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, SafeAreaView, Alert, ScrollView,
     TouchableOpacity, Image, TextInput, ActivityIndicator, Linking,
-    Modal, FlatList, KeyboardAvoidingView, Platform,
+    KeyboardAvoidingView, Platform, Dimensions
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -11,6 +11,31 @@ import CustomButton from '../components/CustomButton';
 import { getCategorias } from '../api/categoria';
 import { createOcorrencia } from '../api/ocorrencias';
 
+const COLORS = {
+    primary: '#0052A4',
+    secondary: '#F58220',
+    background: '#F7F8FA',
+    card: '#FFFFFF',
+    textPrimary: '#2C3E50',
+    textSecondary: '#7F8C8D',
+    inactive: '#EAEBEE',
+    white: '#FFFFFF',
+    danger: '#E74C3C',
+};
+
+const getCategoryIcon = (categoryName) => {
+    const name = categoryName.toLowerCase();
+    if (name.includes('acidente')) return 'car-crash';
+    if (name.includes('interferência')) return 'road-variant';
+    if (name.includes('semáforo')) return 'traffic-light';
+    if (name.includes('óleo')) return 'oil';
+    if (name.includes('veículo quebrado')) return 'car-wrench';
+    if (name.includes('estacionamento')) return 'car-off';
+    if (name.includes('sinalização')) return 'alert';
+    if (name.includes('iluminação')) return 'lightbulb-on-outline';
+    return 'alert-circle-outline';
+};
+
 const NovaOcorrenciaScreen = ({ navigation }) => {
     const [description, setDescription] = useState('');
     const [photo, setPhoto] = useState(null);
@@ -18,50 +43,56 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
     const [categorias, setCategorias] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
     const [hasLocationPermission, setHasLocationPermission] = useState(false);
-    const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
-    const [categorySearch, setCategorySearch] = useState('');
-
-    const requestPermissionsAndFetchData = async () => {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-            setHasLocationPermission(true);
-            let currentLocation = await Location.getCurrentPositionAsync({});
-            setLocation(currentLocation);
-        } else {
-            setHasLocationPermission(false);
-        }
-
-        try {
-            const response = await getCategorias();
-            const lista = response.data?.data?.content ?? response.data?.data ?? [];
-            setCategorias(lista);
-        } catch (error) {
-            console.error('Erro ao buscar categorias:', error);
-            Alert.alert('Erro de Rede', 'Não foi possível carregar as categorias.');
-        }
-    };
 
     useEffect(() => {
-        requestPermissionsAndFetchData();
+        let locationSubscription;
+
+        const init = async () => {
+            try {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                setHasLocationPermission(status === 'granted');
+
+                const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+                if (cameraStatus !== 'granted') {
+                    Alert.alert(
+                        'Permissões Necessárias',
+                        'O acesso à câmera é essencial. Por favor, habilite nas configurações.',
+                        [{ text: 'Abrir Configurações', onPress: () => Linking.openSettings() }]
+                    );
+                }
+
+                if (status === 'granted') {
+                    locationSubscription = await Location.watchPositionAsync(
+                        { accuracy: Location.Accuracy.High, timeInterval: 10000, distanceInterval: 10 },
+                        (currentLocation) => setLocation(currentLocation)
+                    );
+                }
+
+                const response = await getCategorias();
+                const lista = response.data?.data?.content ?? response.data?.data ?? [];
+                setCategorias(lista);
+            } catch (error) {
+                Alert.alert('Erro de Rede', 'Não foi possível carregar os dados iniciais.');
+            } finally {
+                setInitialLoading(false);
+            }
+        };
+
+        init();
+
+        return () => {
+            if (locationSubscription) locationSubscription.remove();
+        };
     }, []);
 
     const pickImage = async () => {
-        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-        if (permissionResult.granted === false) {
-            Alert.alert(
-                'Permissão Necessária',
-                'Você precisa de permitir o acesso à câmera nas configurações do seu dispositivo.',
-                [{ text: 'OK' }, { text: 'Abrir Configurações', onPress: () => Linking.openSettings() }]
-            );
-            return;
-        }
-
         const result = await ImagePicker.launchCameraAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
-            aspect: [4, 3],
-            quality: 0.5,
+            aspect: [16, 9],
+            quality: 0.7,
         });
 
         if (!result.canceled && result.assets?.length > 0) {
@@ -71,22 +102,23 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
 
     const handleLocationPermission = async () => {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-            setHasLocationPermission(true);
-            let currentLocation = await Location.getCurrentPositionAsync({});
-            setLocation(currentLocation);
-        } else {
+        if (status !== 'granted') {
             Alert.alert(
                 'Permissão Necessária',
-                'Você precisa de permitir o acesso à localização nas configurações do seu dispositivo.',
-                [{ text: 'OK' }, { text: 'Abrir Configurações', onPress: () => Linking.openSettings() }]
+                'Você precisa permitir acesso à localização nas configurações.',
+                [{ text: 'Abrir Configurações', onPress: () => Linking.openSettings() }]
             );
+            setHasLocationPermission(false);
+            return;
         }
+        setHasLocationPermission(true);
+        const currentLocation = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        setLocation(currentLocation);
     };
 
     const handleSubmit = async () => {
         if (!description || !photo || !location || !selectedCategory) {
-            Alert.alert('Campos em falta', 'Por favor, preencha todos os campos, selecione uma categoria e tire uma foto.');
+            Alert.alert('Campos Incompletos', 'Por favor, descreva o problema, tire uma foto, e selecione uma categoria.');
             return;
         }
         setLoading(true);
@@ -108,25 +140,25 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
 
         try {
             await createOcorrencia(formData);
-            Alert.alert('Sucesso!', 'Ocorrência registada com sucesso!');
+            Alert.alert('Sucesso!', 'Ocorrência registrada com sucesso!');
             navigation.navigate('Início');
         } catch (error) {
-            console.error('Erro ao registar ocorrência:', error);
-            Alert.alert('Erro', 'Não foi possível registar a sua ocorrência.');
+            Alert.alert('Erro', 'Não foi possível registrar a ocorrência.');
         } finally {
             setLoading(false);
         }
     };
 
-    const filteredCategories = useMemo(() => {
-        if (!categorySearch) {
-            return categorias;
-        }
-        return categorias.filter(cat =>
-            cat.name.toLowerCase().includes(categorySearch.toLowerCase())
+    if (initialLoading) {
+        return (
+            <SafeAreaView style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={styles.loadingText}>Carregando...</Text>
+            </SafeAreaView>
         );
-    }, [categorySearch, categorias]);
+    }
 
+    const { width } = Dimensions.get('window');
 
     return (
         <SafeAreaView style={styles.container}>
@@ -135,8 +167,50 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                 style={{ flex: 1 }}
             >
                 <ScrollView contentContainerStyle={styles.content}>
+                    <View style={styles.header}>
+                        <Text style={styles.headerTitle}>Reportar Ocorrência</Text>
+                        <Text style={styles.headerSubtitle}>Preencha os detalhes abaixo</Text>
+                    </View>
+
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>1. Descreva o Problema</Text>
+                        <Text style={styles.sectionTitle}>1. Tipo de Ocorrência</Text>
+                        <View style={styles.categoryGrid}>
+                            {categorias.map((cat, index) => {
+                                const isSelected = selectedCategory?.id === cat.id;
+                                const color = index % 2 === 0 ? COLORS.primary : COLORS.secondary;
+                                return (
+                                    <TouchableOpacity
+                                        key={cat.id}
+                                        style={[
+                                            styles.categoryItem,
+                                            { borderColor: isSelected ? color : COLORS.inactive }
+                                        ]}
+                                        onPress={() => setSelectedCategory(cat)}
+                                    >
+                                        <View style={[
+                                            styles.iconContainer,
+                                            { backgroundColor: isSelected ? color : 'transparent' }
+                                        ]}>
+                                            <MaterialCommunityIcons
+                                                name={getCategoryIcon(cat.name)}
+                                                size={32}
+                                                color={isSelected ? COLORS.white : color}
+                                            />
+                                        </View>
+                                        <Text
+                                            style={[styles.categoryText, { color: isSelected ? color : COLORS.textPrimary }]}
+                                            numberOfLines={2}
+                                        >
+                                            {cat.name}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>2. Descreva o Problema</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="Ex: Buraco grande na rua principal..."
@@ -148,282 +222,76 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>2. Adicione uma Evidência</Text>
+                        <Text style={styles.sectionTitle}>3. Adicione uma Evidência</Text>
                         <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
                             {photo ? (
                                 <Image source={{ uri: photo.uri }} style={styles.imagePreview} />
                             ) : (
                                 <View style={styles.imagePlaceholder}>
-                                    <Ionicons name="camera" size={40} color="#3a86f4" />
+                                    <Ionicons name="camera" size={40} color={COLORS.primary} />
                                     <Text style={styles.imageText}>Tirar Foto</Text>
                                 </View>
                             )}
                         </TouchableOpacity>
                     </View>
 
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>3. Selecione a Categoria</Text>
-                        <TouchableOpacity style={styles.categorySelector} onPress={() => setCategoryModalVisible(true)}>
-                            <Text style={selectedCategory ? styles.categorySelectedText : styles.categoryPlaceholder}>
-                                {selectedCategory ? selectedCategory.name : 'Clique para selecionar...'}
-                            </Text>
-                            <Ionicons name="chevron-down" size={24} color="#34495e" />
-                        </TouchableOpacity>
-                    </View>
-
                     {!hasLocationPermission ? (
                         <View style={styles.permissionWarning}>
-                            <Text style={styles.permissionText}>A permissão de localização é necessária.</Text>
+                            <Text style={styles.permissionText}>Permissão de localização necessária.</Text>
                             <TouchableOpacity style={styles.permissionButton} onPress={handleLocationPermission}>
                                 <Text style={styles.permissionButtonText}>Conceder Permissão</Text>
                             </TouchableOpacity>
                         </View>
                     ) : (
                         <View style={styles.locationContainer}>
-                            <MaterialCommunityIcons name="map-marker-radius" size={16} color="#7f8c8d" />
+                            <MaterialCommunityIcons name="map-marker-radius-outline" size={20} color={COLORS.textSecondary} />
                             {location ? (
-                                <Text style={styles.location}>
-                                    Localização capturada: {location.coords.latitude.toFixed(4)}, {location.coords.longitude.toFixed(4)}
-                                </Text>
+                                <Text style={styles.location}>Localização capturada: {location.coords.latitude.toFixed(5)}, {location.coords.longitude.toFixed(5)}</Text>
                             ) : (
-                                <Text style={styles.location}>A obter localização...</Text>
+                                <Text style={styles.location}>Obtendo localização...</Text>
                             )}
                         </View>
                     )}
 
-                    <View style={{ marginTop: 20, paddingBottom: 80 }}>
+                    <View style={styles.buttonContainer}>
                         {loading ? (
-                            <ActivityIndicator size="large" color="#3a86f4" />
+                            <ActivityIndicator size="large" color={COLORS.primary} />
                         ) : (
                             <CustomButton title="Enviar Ocorrência" onPress={handleSubmit} />
                         )}
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-
-            <Modal
-                visible={isCategoryModalVisible}
-                animationType="slide"
-                onRequestClose={() => setCategoryModalVisible(false)}
-            >
-                <SafeAreaView style={styles.modalContainer}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Selecione uma Categoria</Text>
-                        <TouchableOpacity onPress={() => setCategoryModalVisible(false)}>
-                            <Ionicons name="close-circle" size={30} color="#e74c3c" />
-                        </TouchableOpacity>
-                    </View>
-                    <View style={styles.searchContainer}>
-                        <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Pesquisar categoria..."
-                            placeholderTextColor="#a9a9a9"
-                            value={categorySearch}
-                            onChangeText={setCategorySearch}
-                        />
-                    </View>
-                    <FlatList
-                        data={filteredCategories}
-                        keyExtractor={item => item.id.toString()}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity
-                                style={styles.modalItem}
-                                onPress={() => {
-                                    setSelectedCategory(item);
-                                    setCategoryModalVisible(false);
-                                    setCategorySearch('');
-                                }}
-                            >
-                                <MaterialCommunityIcons name="chevron-right" size={24} color="#3a86f4" />
-                                <Text style={styles.modalItemText}>{item.name}</Text>
-                            </TouchableOpacity>
-                        )}
-                        ItemSeparatorComponent={() => <View style={styles.separator} />}
-                    />
-                </SafeAreaView>
-            </Modal>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f0f4f7' },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 15,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderColor: '#eee',
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginLeft: 15,
-        color: '#34495e',
-    },
-    content: { paddingBottom: 40, paddingHorizontal: 20, paddingTop: 20 },
-    section: {
-        backgroundColor: '#fff',
-        borderRadius: 15,
-        padding: 20,
-        marginBottom: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 3,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#34495e',
-        marginBottom: 15,
-    },
-    input: {
-        backgroundColor: '#f8f9fa',
-        borderRadius: 10,
-        padding: 15,
-        fontSize: 16,
-        minHeight: 100,
-        textAlignVertical: 'top',
-        borderColor: '#e0e0e0',
-        borderWidth: 1,
-        color: '#333',
-    },
-    imagePicker: {
-        backgroundColor: '#f8f9fa',
-        borderRadius: 10,
-        height: 200,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: '#e0e0e0',
-        borderStyle: 'dashed',
-    },
-    imagePreview: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 8,
-    },
-    imagePlaceholder: {
-        alignItems: 'center',
-    },
-    imageText: {
-        color: '#3a86f4',
-        fontSize: 16,
-        marginTop: 10,
-        fontWeight: 'bold'
-    },
-    categorySelector: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#f8f9fa',
-        borderRadius: 10,
-        padding: 15,
-        borderColor: '#e0e0e0',
-        borderWidth: 1,
-    },
-    categoryPlaceholder: {
-        fontSize: 16,
-        color: '#a9a9a9',
-    },
-    categorySelectedText: {
-        fontSize: 16,
-        color: '#34495e',
-        fontWeight: '500',
-    },
-    locationContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 15,
-        backgroundColor: '#e9ecef',
-        borderRadius: 10,
-    },
-    location: {
-        fontSize: 14,
-        color: '#495057',
-        marginLeft: 8,
-    },
-    permissionWarning: {
-        backgroundColor: '#fff3cd',
-        borderRadius: 10,
-        padding: 15,
-        alignItems: 'center',
-    },
-    permissionText: {
-        color: '#856404',
-        fontSize: 14,
-        textAlign: 'center',
-        marginBottom: 10,
-    },
-    permissionButton: {
-        backgroundColor: '#ffc107',
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 8,
-    },
-    permissionButtonText: {
-        color: '#212529',
-        fontWeight: 'bold',
-    },
-    modalContainer: {
-        flex: 1,
-        backgroundColor: '#f8f9fa',
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 15,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderColor: '#eee',
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#34495e',
-    },
-    searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        margin: 15,
-        borderRadius: 10,
-        borderColor: '#e0e0e0',
-        borderWidth: 1,
-    },
-    searchIcon: {
-        paddingLeft: 15,
-    },
-    searchInput: {
-        flex: 1,
-        paddingVertical: 15,
-        paddingHorizontal: 10,
-        fontSize: 16,
-        color: '#333',
-    },
-    modalItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 20,
-        backgroundColor: '#fff',
-    },
-    modalItemText: {
-        fontSize: 18,
-        color: '#34495e',
-        marginLeft: 15,
-    },
-    separator: {
-        height: 1,
-        backgroundColor: '#f0f4f7',
-    },
+    container: { flex: 1, backgroundColor: COLORS.background },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    loadingText: { marginTop: 10, fontSize: 16, color: COLORS.textPrimary },
+    content: { paddingBottom: 40 },
+    header: { paddingHorizontal: 20, paddingVertical: 10 },
+    headerTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.textPrimary },
+    headerSubtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 4 },
+    section: { marginTop: 20, paddingHorizontal: 20 },
+    sectionTitle: { fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 15 },
+    categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+    categoryItem: { width: 100, height: 100, backgroundColor: COLORS.card, borderRadius: 16, justifyContent: 'center', alignItems: 'center', padding: 8, marginBottom: 10, borderWidth: 2 },
+    iconContainer: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+    categoryText: { textAlign: 'center', fontSize: 12, fontWeight: '500' },
+    input: { backgroundColor: COLORS.card, borderRadius: 12, padding: 15, fontSize: 16, minHeight: 100, textAlignVertical: 'top', borderColor: COLORS.inactive, borderWidth: 1, color: COLORS.textPrimary },
+    imagePicker: { backgroundColor: COLORS.card, borderRadius: 12, height: 200, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: COLORS.inactive, borderStyle: 'dashed', overflow: 'hidden' },
+    imagePreview: { width: '100%', height: '100%' },
+    imagePlaceholder: { alignItems: 'center' },
+    imageText: { color: COLORS.primary, fontSize: 16, marginTop: 10, fontWeight: 'bold' },
+    locationContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 15, marginHorizontal: 20, marginTop: 20, backgroundColor: COLORS.inactive, borderRadius: 12 },
+    location: { fontSize: 14, color: COLORS.textSecondary, marginLeft: 8, fontWeight: '500' },
+    buttonContainer: { marginTop: 30, paddingHorizontal: 20, paddingBottom: 20 },
+    permissionWarning: { backgroundColor: '#fff3cd', borderRadius: 10, padding: 15, alignItems: 'center', marginTop: 20, marginHorizontal: 20 },
+    permissionText: { color: '#856404', fontSize: 14, textAlign: 'center', marginBottom: 10 },
+    permissionButton: { backgroundColor: '#ffc107', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 8 },
+    permissionButtonText: { color: '#212529', fontWeight: 'bold' },
 });
-
 
 export default NovaOcorrenciaScreen;
