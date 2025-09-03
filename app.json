@@ -10,7 +10,8 @@
           "photosPermission": "A app necessita de acesso às suas fotos para que possa anexar evidências nas ocorrências.",
           "cameraPermission": "A app necessita de acesso à sua câmera para que possa tirar fotos para as ocorrências."
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "ios": {
       "infoPlist": {
@@ -19,7 +20,11 @@
       }
     },
     "android": {
-      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"]
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     }
   }
 }

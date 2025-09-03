@@ -14,6 +14,7 @@ import NovaOcorrenciaScreen from '../screens/NovaOcorrenciaScreen';
 import MinhasOcorrenciasScreen from '../screens/MinhasOcorrenciasScreen';
 import PerfilScreen from '../screens/PerfilScreen';
 import EditarPerfilScreen from '../screens/EditarPerfilScreen';
+import NovaOcorrenciaOfflineScreen from '../screens/NovaOcorrenciaOfflineScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -181,18 +182,18 @@ const AppNavigator = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {userToken !== null ? (
-          <>
-            <Stack.Screen name="Main" component={TabNavigator} />
-            <Stack.Screen name="EditarPerfil" component={EditarPerfilScreen} />
-          </>
-        ) : (
+        {userToken === null ? (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
           </>
+        ) : (
+          <Stack.Screen name="Main" component={TabNavigator} />
         )}
+        <Stack.Screen name="NovaOcorrenciaOffline" component={NovaOcorrenciaOfflineScreen} />
+        <Stack.Screen name="EditarPerfil" component={EditarPerfilScreen} />
       </Stack.Navigator>
+
     </NavigationContainer>
   );
 };

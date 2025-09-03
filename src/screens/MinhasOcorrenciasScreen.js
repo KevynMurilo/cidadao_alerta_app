@@ -6,15 +6,14 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
-  TouchableOpacity,
   Alert,
+  TouchableOpacity,
+  Image,
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
-import { getMinhasOcorrencias, getOcorrenciaFoto } from '../api/ocorrencias';
-import { getHistoricoSincronizacao } from '../api/sincronizacao';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getMinhasOcorrencias, getOcorrenciaFoto, createOcorrencia } from '../api/ocorrencias';
+import { getPendingOcorrencias, removeOcorrenciaLocal } from '../localDB';
 import { useFocusEffect } from '@react-navigation/native';
-import OcorrenciaCard from '../components/OcorrenciaCard';
 
 const COLORS = {
   primary: '#4A90E2',
@@ -22,27 +21,34 @@ const COLORS = {
   card: '#FFFFFF',
   textPrimary: '#2C3E50',
   textSecondary: '#7F8C8D',
-  inactive: '#EAEBEE',
-  white: '#FFFFFF',
-  black: '#000000',
-  aberto: '#E74C3C',
-  emAndamento: '#F39C12',
-  finalizado: '#2ECC71',
+  danger: '#E74C3C',
+  success: '#27AE60',
 };
+
+const categoriasFixas = [
+  { id: "uuid-1", name: "Acidente" },
+  { id: "uuid-2", name: "Interferência" },
+  { id: "uuid-3", name: "Semáforo" },
+  { id: "uuid-4", name: "Óleo" },
+  { id: "uuid-5", name: "Veículo Quebrado" },
+  { id: "uuid-6", name: "Estacionamento" },
+  { id: "uuid-7", name: "Sinalização" },
+  { id: "uuid-8", name: "Iluminação" },
+];
 
 const MinhasOcorrenciasScreen = ({ navigation }) => {
   const { userInfo } = useContext(AuthContext);
 
   const [activeTab, setActiveTab] = useState('ocorrencias');
   const [ocorrencias, setOcorrencias] = useState([]);
-  const [historico, setHistorico] = useState([]);
+  const [offlineOcorrencias, setOfflineOcorrencias] = useState([]);
   const [loading, setLoading] = useState(false);
   const [imagens, setImagens] = useState({});
 
   const fetchImagem = async (id) => {
     try {
       const base64 = await getOcorrenciaFoto(id);
-      setImagens((prev) => ({ ...prev, [id]: base64 }));
+      setImagens(prev => ({ ...prev, [id]: base64 }));
     } catch (error) {
     }
   };
@@ -58,31 +64,38 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
           : [];
         setOcorrencias(lista);
 
-        lista.forEach((item) => {
-          if (item.photoUrl && item.photoUrl !== 'string') {
-            fetchImagem(item.id);
-          }
+        const offlineList = await getPendingOcorrencias();
+        setOfflineOcorrencias(
+          offlineList.map(o => ({
+            ...o,
+            categoryName: categoriasFixas.find(c => c.id === o.categoryId)?.name || 'Offline',
+            status: o.syncStatus || 'PENDING',
+          }))
+        );
+
+        lista.forEach(item => {
+          if (item.photoUrl && item.photoUrl !== 'string') fetchImagem(item.id);
         });
 
-      } else {
-        const response = await getHistoricoSincronizacao(userInfo.id ?? userInfo.userId);
-        const lista = Array.isArray(response.data?.data)
-          ? response.data.data
-          : [];
-        setHistorico(lista);
+      } else if (tab === 'offline') {
+        const offlineList = await getPendingOcorrencias();
+        setOfflineOcorrencias(
+          offlineList.map(o => ({
+            ...o,
+            categoryName: categoriasFixas.find(c => c.id === o.categoryId)?.name || 'Offline',
+            status: o.syncStatus || 'PENDING',
+          }))
+        );
       }
     } catch (error) {
-      // console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchData(activeTab);
-    }, [activeTab, userInfo])
-  );
+  useFocusEffect(useCallback(() => {
+    fetchData(activeTab);
+  }, [activeTab, userInfo]));
 
   const handleCardPress = (item) => {
     if (item.lat && item.lon && item.lat !== 0 && item.lon !== 0) {
@@ -103,41 +116,75 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     }
   };
 
-  const renderOcorrenciaItem = ({ item }) => (
-    <OcorrenciaCard
-      item={item}
-      imagem={imagens[item.id]}
-      onPress={() => handleCardPress(item)}
-    />
-  );
+  const sendOfflineOcorrencia = async (ocorrencia) => {
+    try {
+      const formData = new FormData();
+      formData.append("description", ocorrencia.description || '');
+      formData.append("lat", ocorrencia.lat);
+      formData.append("lon", ocorrencia.lon);
 
-  const renderHistoricoItem = ({ item }) => (
-    <View style={styles.historyCard}>
-      <MaterialCommunityIcons
-        name={item.success ? 'check-circle' : 'alert-circle'}
-        size={30}
-        color={item.success ? COLORS.finalizado : COLORS.aberto}
+      const uriParts = ocorrencia.photoUri.split(".");
+      const fileType = uriParts[uriParts.length - 1];
+      formData.append("photo", {
+        uri: ocorrencia.photoUri.replace("file://", ""),
+        name: `photo.${fileType}`,
+        type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+      });
+
+      const isValidUUID = (str) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(str);
+
+      if (ocorrencia.categoryId && isValidUUID(ocorrencia.categoryId)) {
+        formData.append("categoryId", ocorrencia.categoryId);
+      } 
+
+      await createOcorrencia(formData);
+
+      await removeOcorrenciaLocal(ocorrencia.id);
+      Alert.alert("Sucesso!", "Ocorrência enviada!");
+      fetchData('offline');
+      fetchData('ocorrencias');
+    } catch (error) {
+      Alert.alert("Erro", "Falha ao enviar ocorrência offline. Veja logs no console.");
+    }
+  };
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity style={styles.card} onPress={() => handleCardPress(item)}>
+      <Image
+        source={{ uri: imagens[item.id] || item.photoUri }}
+        style={styles.image}
       />
-      <View style={styles.historyTextContainer}>
-        <Text style={styles.historyText}>
-          Sincronização {item.success ? 'bem-sucedida' : 'falhou'}
+      <View style={styles.cardContent}>
+        <Text style={styles.category}>{item.categoryName}</Text>
+        <Text style={styles.description}>{item.description}</Text>
+        <Text style={[styles.status, item.status === 'PENDING' ? { color: COLORS.danger } : { color: COLORS.success }]}>
+          {item.status === 'PENDING' ? 'Pendente' : 'Enviado'}
         </Text>
-        <Text style={styles.historyDate}>
-          {new Date(item.syncDate).toLocaleString('pt-BR')}
-        </Text>
+
+        {activeTab === 'offline' && item.status === 'PENDING' && (
+          <TouchableOpacity
+            style={styles.sendButton}
+            onPress={() => sendOfflineOcorrencia(item)}
+          >
+            <Text style={styles.sendButtonText}>Enviar</Text>
+          </TouchableOpacity>
+        )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   const ListEmptyComponent = ({ message }) => (
     <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons name="information-outline" size={50} color="#bdc3c7" />
-      <Text style={styles.emptyText}>{message}</Text>
+      <Text style={{ textAlign: 'center', color: COLORS.textSecondary, fontSize: 16 }}>
+        {message}
+      </Text>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'ocorrencias' && styles.activeTab]}
@@ -147,33 +194,35 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
             Ocorrências
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'historico' && styles.activeTab]}
-          onPress={() => setActiveTab('historico')}
+          style={[styles.tab, activeTab === 'offline' && styles.activeTab]}
+          onPress={() => setActiveTab('offline')}
         >
-          <Text style={[styles.tabText, activeTab === 'historico' && styles.activeTabText]}>
-            Histórico de Sync
+          <Text style={[styles.tabText, activeTab === 'offline' && styles.activeTabText]}>
+            Offline
           </Text>
         </TouchableOpacity>
       </View>
 
+      {/* Lista */}
       {loading ? (
         <ActivityIndicator style={{ marginTop: 50 }} size="large" color={COLORS.primary} />
-      ) : activeTab === 'ocorrencias' ? (
-        <FlatList
-          data={ocorrencias}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderOcorrenciaItem}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={<ListEmptyComponent message="Você ainda não registrou ocorrências." />}
-        />
       ) : (
         <FlatList
-          data={historico}
+          data={activeTab === 'ocorrencias' ? ocorrencias : offlineOcorrencias}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={renderHistoricoItem}
+          renderItem={renderItem}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<ListEmptyComponent message="Nenhum histórico de sincronização." />}
+          ListEmptyComponent={
+            <ListEmptyComponent
+              message={
+                activeTab === 'ocorrencias'
+                  ? "Você ainda não registrou ocorrências."
+                  : "Nenhuma ocorrência offline pendente."
+              }
+            />
+          }
         />
       )}
     </SafeAreaView>
@@ -199,23 +248,49 @@ const styles = StyleSheet.create({
   tabText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 16 },
   activeTabText: { color: COLORS.primary },
   list: { padding: 20, flexGrow: 1 },
-  historyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  emptyContainer: { justifyContent: 'center', alignItems: 'center', padding: 20 },
+
+  // Card
+  card: {
     backgroundColor: COLORS.card,
-    padding: 20,
-    borderRadius: 10,
+    borderRadius: 12,
+    marginBottom: 20,
+    overflow: 'hidden',
+    elevation: 2,
+  },
+  image: {
+    width: '100%',
+    height: 200,
+  },
+  cardContent: {
+    padding: 15,
+  },
+  category: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 5,
+    color: COLORS.primary,
+  },
+  description: {
+    fontSize: 14,
+    marginBottom: 10,
+    color: COLORS.textPrimary,
+  },
+  status: {
+    fontWeight: 'bold',
     marginBottom: 10,
   },
-  historyTextContainer: { marginLeft: 15, flex: 1 },
-  historyText: { fontSize: 16, fontWeight: '500', color: COLORS.textPrimary },
-  historyDate: { fontSize: 12, color: COLORS.textSecondary, marginTop: 3 },
-  emptyContainer: {
-    justifyContent: 'center',
+  sendButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 10,
+    borderRadius: 8,
     alignItems: 'center',
-    padding: 20,
   },
-  emptyText: { textAlign: 'center', marginTop: 20, fontSize: 16, color: COLORS.textSecondary },
+  sendButtonText: {
+    color: COLORS.card,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 });
 
 export default MinhasOcorrenciasScreen;
