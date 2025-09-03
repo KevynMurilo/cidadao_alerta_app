@@ -58,7 +58,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
         }
 
         const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaType.Images,
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [4, 3],
             quality: 0.5,
@@ -68,7 +68,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
             setPhoto(result.assets[0]);
         }
     };
-    
+
     const handleLocationPermission = async () => {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
@@ -109,7 +109,6 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
         try {
             await createOcorrencia(formData);
             Alert.alert('Sucesso!', 'Ocorrência registada com sucesso!');
-            // Ao submeter, volta para a tela inicial
             navigation.navigate('Início');
         } catch (error) {
             console.error('Erro ao registar ocorrência:', error);
@@ -123,7 +122,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
         if (!categorySearch) {
             return categorias;
         }
-        return categorias.filter(cat => 
+        return categorias.filter(cat =>
             cat.name.toLowerCase().includes(categorySearch.toLowerCase())
         );
     }, [categorySearch, categorias]);
@@ -131,7 +130,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <KeyboardAvoidingView 
+            <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
             >
@@ -161,7 +160,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                             )}
                         </TouchableOpacity>
                     </View>
-                    
+
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>3. Selecione a Categoria</Text>
                         <TouchableOpacity style={styles.categorySelector} onPress={() => setCategoryModalVisible(true)}>
@@ -191,8 +190,8 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                             )}
                         </View>
                     )}
-                    
-                    <View style={{marginTop: 20, paddingBottom: 80}}>
+
+                    <View style={{ marginTop: 20, paddingBottom: 80 }}>
                         {loading ? (
                             <ActivityIndicator size="large" color="#3a86f4" />
                         ) : (
@@ -228,7 +227,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                         data={filteredCategories}
                         keyExtractor={item => item.id.toString()}
                         renderItem={({ item }) => (
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.modalItem}
                                 onPress={() => {
                                     setSelectedCategory(item);
@@ -248,7 +247,6 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
     );
 };
 
-// ... (seus styles continuam os mesmos)
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f0f4f7' },
     header: {

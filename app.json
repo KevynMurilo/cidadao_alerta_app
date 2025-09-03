@@ -8,15 +8,18 @@
         "expo-image-picker",
         {
           "photosPermission": "A app necessita de acesso às suas fotos para que possa anexar evidências nas ocorrências.",
-          "cameraPermission": "A app necessita de acesso à sua câmara para que possa tirar fotos para as ocorrências."
-        }
-      ],
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "A app necessita da sua localização para registar onde a ocorrência aconteceu."
+          "cameraPermission": "A app necessita de acesso à sua câmera para que possa tirar fotos para as ocorrências."
         }
       ]
-    ]
+    ],
+    "ios": {
+      "infoPlist": {
+        "NSCameraUsageDescription": "A app necessita de acesso à sua câmera para tirar fotos.",
+        "NSPhotoLibraryUsageDescription": "A app necessita de acesso à galeria para selecionar fotos."
+      }
+    },
+    "android": {
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"]
+    }
   }
 }

@@ -10,10 +10,12 @@ import {
     FlatList,
     Image,
     ActivityIndicator,
+    Alert,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { getOcorrencias } from '../api/ocorrencias';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 
 const MapaScreen = ({ navigation, route }) => {
     const { initialRegion, focoId } = route.params || {};
@@ -73,8 +75,14 @@ const MapaScreen = ({ navigation, route }) => {
     };
 
     useEffect(() => {
-        const fetchOcorrencias = async () => {
+        const fetchData = async () => {
             try {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== 'granted') {
+                    Alert.alert('Permissão negada', 'Não foi possível acessar a localização.');
+                    return;
+                }
+
                 const response = await getOcorrencias();
                 const lista = response.data?.data?.content || [];
                 setOcorrencias(lista);
@@ -86,7 +94,7 @@ const MapaScreen = ({ navigation, route }) => {
                     if (ocorrenciaFoco) {
                         setOcorrenciasSelecionadas([ocorrenciaFoco]);
                         setModalVisible(true);
-                        
+
                         if (mapRef.current) {
                             setTimeout(() => {
                                 mapRef.current.animateToRegion({
@@ -94,18 +102,18 @@ const MapaScreen = ({ navigation, route }) => {
                                     longitude: ocorrenciaFoco.lon,
                                     latitudeDelta: 0.01,
                                     longitudeDelta: 0.01,
-                                }, 1000); 
-                            }, 500); 
+                                }, 1000);
+                            }, 500);
                         }
                     }
                 }
             } catch (error) {
-                console.error('Erro ao carregar mapa:', error.message);
+                Alert.alert('Erro ao carregar mapa', error.message);
             } finally {
                 setLoading(false);
             }
         };
-        fetchOcorrencias();
+        fetchData();
     }, [focoId]);
 
     const abrirLista = (items) => {
@@ -133,7 +141,6 @@ const MapaScreen = ({ navigation, route }) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            
             {loading ? (
                 <ActivityIndicator style={styles.loading} size="large" color="#3a86f4" />
             ) : (
