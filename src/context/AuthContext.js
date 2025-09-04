@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loginUser, registerUser } from '../api/auth';
+import { initDB } from '../localDB';
 
 export const AuthContext = createContext();
 
@@ -28,11 +29,16 @@ export const AuthProvider = ({ children }) => {
                 setUserInfo(userData);
                 await AsyncStorage.setItem('userToken', token);
                 await AsyncStorage.setItem('userInfo', JSON.stringify(userData));
+
+                await initDB();
+
+                return true;
             } else {
                 throw new Error(response.data.message || 'Erro ao fazer login');
             }
         } catch (e) {
             handleApiError(e, 'login');
+            return false;
         } finally {
             setIsLoading(false);
         }
@@ -73,6 +79,8 @@ export const AuthProvider = ({ children }) => {
             if (token && info) {
                 setUserToken(token);
                 setUserInfo(JSON.parse(info));
+
+                await initDB();
             }
         } catch (e) {
             console.log(`isLoggedIn error: ${e}`);

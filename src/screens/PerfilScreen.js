@@ -42,7 +42,7 @@ const PerfilScreen = () => {
 
             fetchUserData();
 
-            return () => {};
+            return () => { };
         }, [])
     );
 
@@ -52,6 +52,18 @@ const PerfilScreen = () => {
         } else {
             Alert.alert('Erro', 'Não foi possível carregar os dados para edição. Tente novamente.');
         }
+    };
+
+    const handleLogout = () => {
+        Alert.alert(
+            'Confirmar Logout',
+            'Tem certeza que deseja sair?',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Sair', style: 'destructive', onPress: () => logout() },
+            ],
+            { cancelable: true }
+        );
     };
 
     if (loading) {
@@ -98,7 +110,7 @@ const PerfilScreen = () => {
                 <ProfileMenuItem
                     icon="exit-outline"
                     text="Terminar Sessão"
-                    onPress={logout}
+                    onPress={handleLogout}
                     isLogout={true}
                 />
             </ScrollView>

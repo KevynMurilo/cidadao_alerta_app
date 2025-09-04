@@ -12,10 +12,10 @@ import {
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { getOcorrencias, getOcorrenciaFoto } from '../api/ocorrencias';
-import { getCategorias } from '../api/categoria';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import OcorrenciaCard from '../components/OcorrenciaCard';
+import { CATEGORIES } from '../utils/categories';
 
 const COLORS = {
   primary: '#4A90E2',
@@ -35,7 +35,7 @@ const HomeScreen = ({ navigation }) => {
   const { userInfo } = useContext(AuthContext);
 
   const [ocorrencias, setOcorrencias] = useState([]);
-  const [categorias, setCategorias] = useState([]);
+  const [categorias] = useState(CATEGORIES);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState(null);
@@ -62,7 +62,7 @@ const HomeScreen = ({ navigation }) => {
 
       const response = await getOcorrencias({
         status: filters.status || null,
-        categoryId: filters.categoryId || null,
+        category: filters.categoryId || null,
         sort: 'createdAt,desc',
       });
 
@@ -84,19 +84,8 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const fetchCategorias = async () => {
-    try {
-      const response = await getCategorias();
-      const lista = response.data?.data?.content;
-      setCategorias(Array.isArray(lista) ? lista : []);
-    } catch (error) {
-      setCategorias([]);
-    }
-  };
-
   useFocusEffect(
     useCallback(() => {
-      fetchCategorias();
       fetchOcorrencias({ status, categoryId: categoriaId });
     }, [status, categoriaId])
   );
@@ -222,7 +211,7 @@ const FilterButton = ({ label, value, icon, isActive, onPress }) => (
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: COLORS.background, marginBottom: 100 },
   header: { paddingTop: 10, paddingBottom: 20 },
   title: { fontSize: 18, color: COLORS.textSecondary },
   userName: { fontSize: 26, fontWeight: 'bold', color: COLORS.textPrimary },

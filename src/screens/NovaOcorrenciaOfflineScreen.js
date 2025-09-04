@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   View, Text, StyleSheet, SafeAreaView, Alert, ScrollView,
   TouchableOpacity, Image, TextInput, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Dimensions
+  KeyboardAvoidingView, Platform
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -10,57 +10,32 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import CustomButton from "../components/CustomButton";
 import { insertOcorrenciaLocal } from "../localDB";
 import * as Crypto from "expo-crypto";
+import { CATEGORIES } from "../utils/categories";
 
 const COLORS = {
-  primary: "#0052A4",
-  secondary: "#F58220",
-  background: "#F7F8FA",
-  card: "#FFFFFF",
-  textPrimary: "#2C3E50",
-  textSecondary: "#7F8C8D",
-  inactive: "#EAEBEE",
-  white: "#FFFFFF",
-  danger: "#E74C3C",
-};
-
-const categoriasFixas = [
-  { id: "1", name: "Acidente" },
-  { id: "2", name: "Interferência" },
-  { id: "3", name: "Semáforo" },
-  { id: "4", name: "Óleo" },
-  { id: "5", name: "Veículo Quebrado" },
-  { id: "6", name: "Estacionamento" },
-  { id: "7", name: "Sinalização" },
-  { id: "8", name: "Iluminação" },
-];
-
-const getCategoryIcon = (categoryName) => {
-  const name = categoryName.toLowerCase();
-  if (name.includes("acidente")) return "car-crash";
-  if (name.includes("interferência")) return "road-variant";
-  if (name.includes("semáforo")) return "traffic-light";
-  if (name.includes("óleo")) return "oil";
-  if (name.includes("veículo quebrado")) return "car-wrench";
-  if (name.includes("estacionamento")) return "car-off";
-  if (name.includes("sinalização")) return "alert";
-  if (name.includes("iluminação")) return "lightbulb-on-outline";
-  return "alert-circle-outline";
+  primary: '#0052A4',
+  secondary: '#F58220',
+  background: '#F7F8FA',
+  card: '#FFFFFF',
+  textPrimary: '#2C3E50',
+  textSecondary: '#7F8C8D',
+  inactive: '#EAEBEE',
+  white: '#FFFFFF',
+  danger: '#E74C3C',
 };
 
 const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState(null);
   const [location, setLocation] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const init = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === "granted") {
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
         setLocation(loc);
       }
       await ImagePicker.requestCameraPermissionsAsync();
@@ -81,8 +56,11 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
-    if (!description || !photo || !location || !selectedCategory) {
-      Alert.alert("Campos Incompletos", "Preencha todos os dados, tire uma foto e selecione a categoria.");
+    if (!description || !photo || !location) {
+      Alert.alert(
+        "Campos Incompletos",
+        "Preencha todos os dados e tire uma foto."
+      );
       return;
     }
     setLoading(true);
@@ -93,12 +71,11 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
         photoUri: photo.uri,
         lat: location.coords.latitude,
         lon: location.coords.longitude,
-        categoryId: selectedCategory.id,
+        categoryId: selectedCategory.id, 
         createdAt: new Date().toISOString(),
       };
 
       await insertOcorrenciaLocal(ocorrencia);
-
       Alert.alert("Sucesso!", "Ocorrência salva offline!");
       navigation.goBack();
     } catch (e) {
@@ -120,24 +97,18 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
 
           <Text style={styles.sectionTitle}>1. Selecione a Categoria</Text>
           <View style={styles.categoryGrid}>
-            {categoriasFixas.map((cat, index) => {
+            {CATEGORIES.map((cat, index) => {
               const isSelected = selectedCategory?.id === cat.id;
               const color = index % 2 === 0 ? COLORS.primary : COLORS.secondary;
               return (
                 <TouchableOpacity
                   key={cat.id}
-                  style={[
-                    styles.categoryItem,
-                    { borderColor: isSelected ? color : COLORS.inactive }
-                  ]}
+                  style={[styles.categoryItem, { borderColor: isSelected ? color : COLORS.inactive }]}
                   onPress={() => setSelectedCategory(cat)}
                 >
-                  <View style={[
-                    styles.iconContainer,
-                    { backgroundColor: isSelected ? color : "transparent" }
-                  ]}>
+                  <View style={[styles.iconContainer, { backgroundColor: isSelected ? color : 'transparent' }]}>
                     <MaterialCommunityIcons
-                      name={getCategoryIcon(cat.name)}
+                      name={cat.icon}
                       size={32}
                       color={isSelected ? COLORS.white : color}
                     />

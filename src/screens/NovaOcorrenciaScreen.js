@@ -8,8 +8,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomButton from '../components/CustomButton';
-import { getCategorias } from '../api/categoria';
 import { createOcorrencia } from '../api/ocorrencias';
+import { CATEGORIES } from '../utils/categories';
 
 const COLORS = {
     primary: '#0052A4',
@@ -23,24 +23,10 @@ const COLORS = {
     danger: '#E74C3C',
 };
 
-const getCategoryIcon = (categoryName) => {
-    const name = categoryName.toLowerCase();
-    if (name.includes('acidente')) return 'car-crash';
-    if (name.includes('interferência')) return 'road-variant';
-    if (name.includes('semáforo')) return 'traffic-light';
-    if (name.includes('óleo')) return 'oil';
-    if (name.includes('veículo quebrado')) return 'car-wrench';
-    if (name.includes('estacionamento')) return 'car-off';
-    if (name.includes('sinalização')) return 'alert';
-    if (name.includes('iluminação')) return 'lightbulb-on-outline';
-    return 'alert-circle-outline';
-};
-
 const NovaOcorrenciaScreen = ({ navigation }) => {
     const [description, setDescription] = useState('');
     const [photo, setPhoto] = useState(null);
     const [location, setLocation] = useState(null);
-    const [categorias, setCategorias] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
@@ -69,12 +55,8 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                         (currentLocation) => setLocation(currentLocation)
                     );
                 }
-
-                const response = await getCategorias();
-                const lista = response.data?.data?.content ?? response.data?.data ?? [];
-                setCategorias(lista);
             } catch (error) {
-                Alert.alert('Erro de Rede', 'Não foi possível carregar os dados iniciais.');
+                Alert.alert('Erro', 'Não foi possível inicializar.');
             } finally {
                 setInitialLoading(false);
             }
@@ -118,7 +100,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
 
     const handleSubmit = async () => {
         if (!description || !photo || !location || !selectedCategory) {
-            Alert.alert('Campos Incompletos', 'Por favor, descreva o problema, tire uma foto, e selecione uma categoria.');
+            Alert.alert('Campos Incompletos', 'Por favor, descreva o problema, tire uma foto e selecione uma categoria.');
             return;
         }
         setLoading(true);
@@ -127,7 +109,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
         formData.append('description', description);
         formData.append('lat', location.coords.latitude);
         formData.append('lon', location.coords.longitude);
-        formData.append('categoryId', selectedCategory.id);
+        formData.append('category', selectedCategory.id);
 
         const uriParts = photo.uri.split('.');
         const fileType = uriParts[uriParts.length - 1];
@@ -175,7 +157,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>1. Tipo de Ocorrência</Text>
                         <View style={styles.categoryGrid}>
-                            {categorias.map((cat, index) => {
+                            {CATEGORIES.map((cat, index) => {
                                 const isSelected = selectedCategory?.id === cat.id;
                                 const color = index % 2 === 0 ? COLORS.primary : COLORS.secondary;
                                 return (
@@ -187,18 +169,23 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                                         ]}
                                         onPress={() => setSelectedCategory(cat)}
                                     >
-                                        <View style={[
-                                            styles.iconContainer,
-                                            { backgroundColor: isSelected ? color : 'transparent' }
-                                        ]}>
+                                        <View
+                                            style={[
+                                                styles.iconContainer,
+                                                { backgroundColor: isSelected ? color : 'transparent' }
+                                            ]}
+                                        >
                                             <MaterialCommunityIcons
-                                                name={getCategoryIcon(cat.name)}
+                                                name={cat.icon}
                                                 size={32}
                                                 color={isSelected ? COLORS.white : color}
                                             />
                                         </View>
                                         <Text
-                                            style={[styles.categoryText, { color: isSelected ? color : COLORS.textPrimary }]}
+                                            style={[
+                                                styles.categoryText,
+                                                { color: isSelected ? color : COLORS.textPrimary }
+                                            ]}
                                             numberOfLines={2}
                                         >
                                             {cat.name}
@@ -246,7 +233,9 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                         <View style={styles.locationContainer}>
                             <MaterialCommunityIcons name="map-marker-radius-outline" size={20} color={COLORS.textSecondary} />
                             {location ? (
-                                <Text style={styles.location}>Localização capturada: {location.coords.latitude.toFixed(5)}, {location.coords.longitude.toFixed(5)}</Text>
+                                <Text style={styles.location}>
+                                    Localização capturada: {location.coords.latitude.toFixed(5)}, {location.coords.longitude.toFixed(5)}
+                                </Text>
                             ) : (
                                 <Text style={styles.location}>Obtendo localização...</Text>
                             )}

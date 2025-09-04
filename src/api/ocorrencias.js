@@ -32,8 +32,8 @@ export const createOcorrencia = (data) => {
     });
 };
 
-export const getMinhasOcorrencias = (page = 0, size = 10) => {
-    return apiClient.get(`/ocorrencias/me?page=${page}&size=${size}`);
+export const getMinhasOcorrencias = async (params = {}) => {
+    return await apiClient.get('/ocorrencias/me', { params });
 };
 
 export const updateOcorrencia = (id, data) => {

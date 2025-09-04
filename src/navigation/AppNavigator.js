@@ -192,6 +192,7 @@ const AppNavigator = () => {
         )}
         <Stack.Screen name="NovaOcorrenciaOffline" component={NovaOcorrenciaOfflineScreen} />
         <Stack.Screen name="EditarPerfil" component={EditarPerfilScreen} />
+        
       </Stack.Navigator>
 
     </NavigationContainer>

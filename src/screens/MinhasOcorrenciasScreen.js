@@ -9,11 +9,14 @@ import {
   Alert,
   TouchableOpacity,
   Image,
+  ScrollView,
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { getMinhasOcorrencias, getOcorrenciaFoto, createOcorrencia } from '../api/ocorrencias';
 import { getPendingOcorrencias, removeOcorrenciaLocal } from '../localDB';
 import { useFocusEffect } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CATEGORIES } from '../utils/categories';
 
 const COLORS = {
   primary: '#4A90E2',
@@ -23,18 +26,9 @@ const COLORS = {
   textSecondary: '#7F8C8D',
   danger: '#E74C3C',
   success: '#27AE60',
+  white: '#FFFFFF',
 };
 
-const categoriasFixas = [
-  { id: "uuid-1", name: "Acidente" },
-  { id: "uuid-2", name: "Interferência" },
-  { id: "uuid-3", name: "Semáforo" },
-  { id: "uuid-4", name: "Óleo" },
-  { id: "uuid-5", name: "Veículo Quebrado" },
-  { id: "uuid-6", name: "Estacionamento" },
-  { id: "uuid-7", name: "Sinalização" },
-  { id: "uuid-8", name: "Iluminação" },
-];
 
 const MinhasOcorrenciasScreen = ({ navigation }) => {
   const { userInfo } = useContext(AuthContext);
@@ -43,14 +37,15 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
   const [ocorrencias, setOcorrencias] = useState([]);
   const [offlineOcorrencias, setOfflineOcorrencias] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState(null);
+  const [categoriaFilter, setCategoriaFilter] = useState(null);
   const [imagens, setImagens] = useState({});
 
   const fetchImagem = async (id) => {
     try {
       const base64 = await getOcorrenciaFoto(id);
       setImagens(prev => ({ ...prev, [id]: base64 }));
-    } catch (error) {
-    }
+    } catch (error) { }
   };
 
   const fetchData = async (tab) => {
@@ -58,36 +53,46 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     setLoading(true);
     try {
       if (tab === 'ocorrencias') {
-        const response = await getMinhasOcorrencias();
-        const lista = Array.isArray(response.data?.data?.content)
+        const params = {
+          page: 0,
+          size: 50,
+          category: categoriaFilter || undefined,
+        };
+        const response = await getMinhasOcorrencias(params);
+        let lista = Array.isArray(response.data?.data?.content)
           ? response.data.data.content
           : [];
-        setOcorrencias(lista);
 
-        const offlineList = await getPendingOcorrencias();
-        setOfflineOcorrencias(
-          offlineList.map(o => ({
-            ...o,
-            categoryName: categoriasFixas.find(c => c.id === o.categoryId)?.name || 'Offline',
-            status: o.syncStatus || 'PENDING',
-          }))
-        );
+        setOcorrencias(lista);
 
         lista.forEach(item => {
           if (item.photoUrl && item.photoUrl !== 'string') fetchImagem(item.id);
         });
 
-      } else if (tab === 'offline') {
         const offlineList = await getPendingOcorrencias();
         setOfflineOcorrencias(
           offlineList.map(o => ({
             ...o,
-            categoryName: categoriasFixas.find(c => c.id === o.categoryId)?.name || 'Offline',
+            categoryName: CATEGORIES.find(c => c.id === o.categoryId)?.name || 'Offline',
             status: o.syncStatus || 'PENDING',
           }))
         );
+
+      } else if (tab === 'offline') {
+        const offlineList = await getPendingOcorrencias();
+        setOfflineOcorrencias(
+          offlineList
+            .map(o => ({
+              ...o,
+              categoryName: CATEGORIES.find(c => c.id === o.categoryId)?.name || 'Offline',
+              status: o.syncStatus || 'PENDING',
+            }))
+            .filter(o => !statusFilter || o.status === statusFilter)
+            .filter(o => !categoriaFilter || o.categoryId === categoriaFilter)
+        );
       }
     } catch (error) {
+      console.log(error);
     } finally {
       setLoading(false);
     }
@@ -95,7 +100,7 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
 
   useFocusEffect(useCallback(() => {
     fetchData(activeTab);
-  }, [activeTab, userInfo]));
+  }, [activeTab, userInfo, statusFilter, categoriaFilter]));
 
   const handleCardPress = (item) => {
     if (item.lat && item.lon && item.lat !== 0 && item.lon !== 0) {
@@ -109,20 +114,16 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
         focoId: item.id,
       });
     } else {
-      Alert.alert(
-        'Localização Indisponível',
-        'Esta ocorrência não possui dados de localização para ser exibida no mapa.'
-      );
+      Alert.alert('Localização Indisponível', 'Esta ocorrência não possui dados de localização.');
     }
   };
 
   const sendOfflineOcorrencia = async (ocorrencia) => {
     try {
       const formData = new FormData();
-      formData.append("description", ocorrencia.description || '');
+      formData.append("description", ocorrencia.description);
       formData.append("lat", ocorrencia.lat);
       formData.append("lon", ocorrencia.lon);
-
       const uriParts = ocorrencia.photoUri.split(".");
       const fileType = uriParts[uriParts.length - 1];
       formData.append("photo", {
@@ -130,43 +131,26 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
         name: `photo.${fileType}`,
         type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
       });
-
-      const isValidUUID = (str) =>
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(str);
-
-      if (ocorrencia.categoryId && isValidUUID(ocorrencia.categoryId)) {
-        formData.append("categoryId", ocorrencia.categoryId);
-      } 
-
+      formData.append("category", ocorrencia.categoryId);
       await createOcorrencia(formData);
-
       await removeOcorrenciaLocal(ocorrencia.id);
       Alert.alert("Sucesso!", "Ocorrência enviada!");
       fetchData('offline');
       fetchData('ocorrencias');
     } catch (error) {
-      Alert.alert("Erro", "Falha ao enviar ocorrência offline. Veja logs no console.");
+      Alert.alert("Erro", "Falha ao enviar ocorrência offline.");
     }
   };
 
   const renderItem = ({ item }) => (
     <TouchableOpacity style={styles.card} onPress={() => handleCardPress(item)}>
-      <Image
-        source={{ uri: imagens[item.id] || item.photoUri }}
-        style={styles.image}
-      />
+      <Image source={{ uri: imagens[item.id] || item.photoUri }} style={styles.image} />
       <View style={styles.cardContent}>
         <Text style={styles.category}>{item.categoryName}</Text>
         <Text style={styles.description}>{item.description}</Text>
-        <Text style={[styles.status, item.status === 'PENDING' ? { color: COLORS.danger } : { color: COLORS.success }]}>
-          {item.status === 'PENDING' ? 'Pendente' : 'Enviado'}
-        </Text>
-
+        <Text style={[styles.status, item.status === 'PENDING' ? { color: COLORS.danger } : { color: COLORS.success }]}>{item.status === 'PENDING' ? 'Pendente' : 'Enviado'}</Text>
         {activeTab === 'offline' && item.status === 'PENDING' && (
-          <TouchableOpacity
-            style={styles.sendButton}
-            onPress={() => sendOfflineOcorrencia(item)}
-          >
+          <TouchableOpacity style={styles.sendButton} onPress={() => sendOfflineOcorrencia(item)}>
             <Text style={styles.sendButtonText}>Enviar</Text>
           </TouchableOpacity>
         )}
@@ -174,38 +158,44 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const ListEmptyComponent = ({ message }) => (
-    <View style={styles.emptyContainer}>
-      <Text style={{ textAlign: 'center', color: COLORS.textSecondary, fontSize: 16 }}>
-        {message}
-      </Text>
-    </View>
+  const FilterButton = ({ label, value, icon, isActive, onPress }) => (
+    <TouchableOpacity
+      style={[styles.filterButton, isActive && styles.filterButtonActive]}
+      onPress={() => onPress(value)}
+    >
+      {icon && <MaterialCommunityIcons name={icon} size={18} color={isActive ? COLORS.white : COLORS.textPrimary} style={{ marginRight: 8 }} />}
+      <Text style={[styles.filterButtonText, isActive && styles.filterButtonTextActive]}>{label}</Text>
+    </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Tabs */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'ocorrencias' && styles.activeTab]}
-          onPress={() => setActiveTab('ocorrencias')}
-        >
-          <Text style={[styles.tabText, activeTab === 'ocorrencias' && styles.activeTabText]}>
-            Ocorrências
-          </Text>
+        <TouchableOpacity style={[styles.tab, activeTab === 'ocorrencias' && styles.activeTab]} onPress={() => setActiveTab('ocorrencias')}>
+          <Text style={[styles.tabText, activeTab === 'ocorrencias' && styles.activeTabText]}>Minhas Ocorrências</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'offline' && styles.activeTab]}
-          onPress={() => setActiveTab('offline')}
-        >
-          <Text style={[styles.tabText, activeTab === 'offline' && styles.activeTabText]}>
-            Offline
-          </Text>
+        <TouchableOpacity style={[styles.tab, activeTab === 'offline' && styles.activeTab]} onPress={() => setActiveTab('offline')}>
+          <Text style={[styles.tabText, activeTab === 'offline' && styles.activeTabText]}>Offline</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Lista */}
+      <View style={styles.filterWrapper}>
+        <Text style={styles.filterTitle}>Categorias</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+          <FilterButton label="Todas" value={null} isActive={categoriaFilter === null} onPress={setCategoriaFilter} />
+          {CATEGORIES.map(cat => (
+            <FilterButton
+              key={cat.id}
+              label={cat.name}
+              value={cat.id}
+              icon={cat.icon}
+              isActive={categoriaFilter === cat.id}
+              onPress={setCategoriaFilter}
+            />
+          ))}
+        </ScrollView>
+      </View>
+
       {loading ? (
         <ActivityIndicator style={{ marginTop: 50 }} size="large" color={COLORS.primary} />
       ) : (
@@ -215,13 +205,11 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
           renderItem={renderItem}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
-            <ListEmptyComponent
-              message={
-                activeTab === 'ocorrencias'
-                  ? "Você ainda não registrou ocorrências."
-                  : "Nenhuma ocorrência offline pendente."
-              }
-            />
+            <View style={styles.emptyContainer}>
+              <Text style={{ textAlign: 'center', color: COLORS.textSecondary, fontSize: 16 }}>
+                {activeTab === 'ocorrencias' ? "Você ainda não registrou ocorrências." : "Nenhuma ocorrência offline pendente."}
+              </Text>
+            </View>
           }
         />
       )}
@@ -230,7 +218,7 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: COLORS.background, marginBottom: 100 },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: COLORS.card,
@@ -250,7 +238,6 @@ const styles = StyleSheet.create({
   list: { padding: 20, flexGrow: 1 },
   emptyContainer: { justifyContent: 'center', alignItems: 'center', padding: 20 },
 
-  // Card
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
@@ -291,6 +278,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+
+  filterWrapper: { paddingBottom: 10, paddingHorizontal: 20 },
+  filterTitle: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 12, marginTop: 15 },
+  filterScroll: { paddingVertical: 4 },
+  filterButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 30, marginRight: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  filterButtonActive: { backgroundColor: COLORS.primary, borderWidth: 0 },
+  filterButtonText: { color: COLORS.textPrimary, fontWeight: '600', fontSize: 14 },
+  filterButtonTextActive: { color: COLORS.white },
 });
 
 export default MinhasOcorrenciasScreen;

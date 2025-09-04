@@ -14,19 +14,37 @@ import {
 import { AuthContext } from "../context/AuthContext";
 import CustomButton from "../components/CustomButton";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { initDB } from "../localDB";
+import { getPendingOcorrencias, initDB } from "../localDB";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { login, isLoading, error } = useContext(AuthContext);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Erro", "Por favor, preencha todos os campos.");
       return;
     }
-    login(email, password);
+
+    try {
+      await initDB();
+
+      const success = await login(email, password);
+      if (success) {
+        const offline = await getPendingOcorrencias();
+        if (offline.length > 0) {
+          Alert.alert(
+            'Ocorrências Offline',
+            `Você tem ${offline.length} ocorrência(s) offline pendente(s).`,
+            [{ text: 'OK' }]
+          );
+        }
+      }
+    } catch (e) {
+      Alert.alert("Erro", "Ocorreu um problema ao logar.");
+      console.error(e);
+    }
   };
 
   const handleOffline = async () => {
@@ -52,7 +70,7 @@ const LoginScreen = ({ navigation }) => {
               size={60}
               color="#3a86f4"
             />
-            <Text style={styles.title}>Cidadão Alerta</Text>
+            <Text style={styles.title}>Cidade em Foco</Text>
             <Text style={styles.subtitle}>
               A sua voz para uma cidade melhor.
             </Text>
