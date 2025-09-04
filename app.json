@@ -3,6 +3,7 @@
     "name": "cidade-em-foco",
     "slug": "Cidade em Foco",
     "version": "1.0.0",
+    "icon": "./src/assets/logo.png",
     "plugins": [
       [
         "expo-image-picker",
@@ -20,6 +21,10 @@
       }
     },
     "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/logo.png",
+        "backgroundColor": "#FFFFFF"
+      },
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

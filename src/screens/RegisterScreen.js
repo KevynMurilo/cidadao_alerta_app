@@ -1,20 +1,28 @@
 import React, { useState, useContext } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    SafeAreaView,
-    TouchableOpacity,
-    ActivityIndicator,
-    Alert,
-    TextInput,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-} from 'react-native';
+import { View, Modal, ActivityIndicator, StyleSheet, Text, Platform, TouchableOpacity, KeyboardAvoidingView, ScrollView, TextInput  } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import CustomButton from '../components/CustomButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const LoadingOverlay = ({ isVisible }) => {
+    if (!isVisible) return null;
+
+    return (
+        <Modal
+            transparent={true}
+            animationType="fade"
+            visible={isVisible}
+        >
+            <View style={styles.modalContainer}>
+                <View style={styles.loaderBox}>
+                    <ActivityIndicator size="large" color="#FFFFFF" />
+                    <Text style={styles.loadingText}>Aguarde...</Text>
+                </View>
+            </View>
+        </Modal>
+    );
+};
 
 const RegisterScreen = ({ navigation }) => {
     const [name, setName] = useState('');
@@ -35,12 +43,12 @@ const RegisterScreen = ({ navigation }) => {
         }
 
         try {
-            const result = await register(name, email, password);
-            if (result && result.success) {
-                 Alert.alert('Sucesso!', 'Seu cadastro foi realizado. Faça o login para continuar.', [
-                    { text: 'OK', onPress: () => navigation.navigate('Login') }
-                ]);
-            }
+            await register(name, email, password);
+            Alert.alert(
+                'Quase lá!',
+                'Enviámos um código de verificação para o seu e-mail. Por favor, insira-o para ativar a sua conta.',
+                [{ text: 'OK' }]
+            );
         } catch (e) {
             Alert.alert('Erro no Cadastro', e.message);
         }
@@ -48,6 +56,7 @@ const RegisterScreen = ({ navigation }) => {
 
     return (
         <SafeAreaView style={styles.container}>
+            <LoadingOverlay isVisible={isLoading} />
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={styles.keyboardAvoidingContainer}
@@ -60,7 +69,7 @@ const RegisterScreen = ({ navigation }) => {
                         </View>
 
                         <View style={styles.inputContainer}>
-                             <MaterialCommunityIcons name="account-outline" size={24} color="#999" style={styles.inputIcon} />
+                            <MaterialCommunityIcons name="account-outline" size={24} color="#999" style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Nome Completo"
@@ -71,7 +80,7 @@ const RegisterScreen = ({ navigation }) => {
                         </View>
 
                         <View style={styles.inputContainer}>
-                             <MaterialCommunityIcons name="email-outline" size={24} color="#999" style={styles.inputIcon} />
+                            <MaterialCommunityIcons name="email-outline" size={24} color="#999" style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="E-mail"
@@ -84,7 +93,7 @@ const RegisterScreen = ({ navigation }) => {
                         </View>
 
                         <View style={styles.inputContainer}>
-                             <MaterialCommunityIcons name="lock-outline" size={24} color="#999" style={styles.inputIcon} />
+                            <MaterialCommunityIcons name="lock-outline" size={24} color="#999" style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Senha"
@@ -96,7 +105,7 @@ const RegisterScreen = ({ navigation }) => {
                         </View>
 
                         <View style={styles.inputContainer}>
-                             <MaterialCommunityIcons name="lock-check-outline" size={24} color="#999" style={styles.inputIcon} />
+                            <MaterialCommunityIcons name="lock-check-outline" size={24} color="#999" style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Confirmar Senha"
@@ -107,15 +116,11 @@ const RegisterScreen = ({ navigation }) => {
                             />
                         </View>
 
-                        {isLoading ? (
-                            <ActivityIndicator size="large" color="#3a86f4" style={{ marginTop: 20 }} />
-                        ) : (
-                            <CustomButton title="Cadastrar" onPress={handleRegister} />
-                        )}
+                        <CustomButton title="Cadastrar" onPress={handleRegister} disabled={isLoading} />
 
                         <View style={styles.footer}>
                             <Text style={styles.footerText}>Já tem uma conta?</Text>
-                            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                            <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
                                 <Text style={styles.linkText}>Faça login</Text>
                             </TouchableOpacity>
                         </View>
@@ -188,7 +193,26 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginLeft: 5,
     },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    },
+    loaderBox: {
+        backgroundColor: '#2c3e50',
+        borderRadius: 15,
+        padding: 25,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+    },
+    loadingText: {
+        color: '#FFFFFF',
+        marginLeft: 15,
+        fontSize: 16,
+        fontWeight: '500',
+    },
 });
 
 export default RegisterScreen;
-

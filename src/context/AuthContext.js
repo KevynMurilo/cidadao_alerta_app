@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { loginUser, registerUser } from '../api/auth';
+import { loginUser, registerUser, verifyCode, resendVerificationCode } from '../api/auth';
 import { initDB } from '../localDB';
 
 export const AuthContext = createContext();
@@ -8,18 +8,16 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [userToken, setUserToken] = useState(null);
     const [userInfo, setUserInfo] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [needsVerification, setNeedsVerification] = useState(null);
 
     const handleApiError = (e, context) => {
         const errorMessage = e.response?.data?.message || e.message || 'Ocorreu um erro. Tente novamente.';
         setError(errorMessage);
-        console.error(`Erro em ${context}:`, e.response?.data || e);
-        return errorMessage;
+        throw new Error(errorMessage);
     };
 
     const login = async (email, password) => {
-        setIsLoading(true);
         setError(null);
         try {
             const response = await loginUser(email, password);
@@ -29,63 +27,71 @@ export const AuthProvider = ({ children }) => {
                 setUserInfo(userData);
                 await AsyncStorage.setItem('userToken', token);
                 await AsyncStorage.setItem('userInfo', JSON.stringify(userData));
-
+                setNeedsVerification(null);
                 await initDB();
-
-                return true;
-            } else {
-                throw new Error(response.data.message || 'Erro ao fazer login');
             }
         } catch (e) {
             handleApiError(e, 'login');
-            return false;
-        } finally {
-            setIsLoading(false);
         }
     };
 
     const register = async (name, email, password) => {
-        setIsLoading(true);
         setError(null);
         try {
             const response = await registerUser(name, email, password);
             if (response.data && response.data.success) {
-                return response.data;
-            } else {
-                throw new Error(response.data.message || 'Erro ao registrar');
+                setNeedsVerification(email);
             }
         } catch (e) {
-            const errorMessage = handleApiError(e, 'register');
-            throw new Error(errorMessage);
-        } finally {
-            setIsLoading(false);
+            handleApiError(e, 'register');
+        }
+    };
+    
+    const verify = async (email, code) => {
+        setError(null);
+        try {
+            const response = await verifyCode(email, code);
+            if (response.data && response.data.success) {
+                const { token, ...userData } = response.data.data;
+                setUserToken(token);
+                setUserInfo(userData);
+                await AsyncStorage.setItem('userToken', token);
+                await AsyncStorage.setItem('userInfo', JSON.stringify(userData));
+                setNeedsVerification(null);
+            }
+        } catch(e) {
+            handleApiError(e, 'verify');
+        }
+    };
+
+    const resendCode = async (email) => {
+        setError(null);
+        try {
+            await resendVerificationCode(email);
+        } catch (e) {
+            handleApiError(e, 'resend-code');
         }
     };
 
     const logout = async () => {
-        setIsLoading(true);
         setUserToken(null);
         setUserInfo(null);
+        setNeedsVerification(null);
         await AsyncStorage.removeItem('userToken');
         await AsyncStorage.removeItem('userInfo');
-        setIsLoading(false);
     };
 
     const isLoggedIn = async () => {
         try {
-            setIsLoading(true);
             let token = await AsyncStorage.getItem('userToken');
             let info = await AsyncStorage.getItem('userInfo');
             if (token && info) {
                 setUserToken(token);
                 setUserInfo(JSON.parse(info));
-
                 await initDB();
             }
         } catch (e) {
             console.log(`isLoggedIn error: ${e}`);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -98,13 +104,14 @@ export const AuthProvider = ({ children }) => {
             login,
             logout,
             register,
-            isLoading,
+            verify,
+            resendCode,
             userToken,
             userInfo,
-            error
+            error,
+            needsVerification
         }}>
             {children}
         </AuthContext.Provider>
     );
 };
-
