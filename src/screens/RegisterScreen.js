@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { View, Modal, ActivityIndicator, StyleSheet, Text, Platform, TouchableOpacity, KeyboardAvoidingView, ScrollView, TextInput  } from 'react-native';
+import { View, Modal, ActivityIndicator, StyleSheet, Text, Platform, TouchableOpacity, KeyboardAvoidingView, ScrollView, TextInput, Alert } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import CustomButton from '../components/CustomButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -44,13 +44,10 @@ const RegisterScreen = ({ navigation }) => {
 
         try {
             await register(name, email, password);
-            Alert.alert(
-                'Quase lá!',
-                'Enviámos um código de verificação para o seu e-mail. Por favor, insira-o para ativar a sua conta.',
-                [{ text: 'OK' }]
-            );
+            // O sucesso é tratado dentro do seu AuthContext, que irá navegar o usuário
         } catch (e) {
-            Alert.alert('Erro no Cadastro', e.message);
+            // O erro já deve ser tratado no AuthContext, mas um fallback aqui é bom
+            Alert.alert('Erro no Cadastro', e.message || 'Ocorreu um erro desconhecido.');
         }
     };
 
@@ -76,6 +73,8 @@ const RegisterScreen = ({ navigation }) => {
                                 placeholderTextColor="#a9a9a9"
                                 value={name}
                                 onChangeText={setName}
+                                // 2. Adicione 'editable' para desabilitar durante o loading
+                                editable={!isLoading}
                             />
                         </View>
 
@@ -89,6 +88,8 @@ const RegisterScreen = ({ navigation }) => {
                                 onChangeText={setEmail}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
+                                // 2. Adicione 'editable'
+                                editable={!isLoading}
                             />
                         </View>
 
@@ -101,6 +102,8 @@ const RegisterScreen = ({ navigation }) => {
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry
+                                // 2. Adicione 'editable'
+                                editable={!isLoading}
                             />
                         </View>
 
@@ -113,13 +116,17 @@ const RegisterScreen = ({ navigation }) => {
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
                                 secureTextEntry
+                                // 2. Adicione 'editable'
+                                editable={!isLoading}
                             />
                         </View>
 
+                        {/* O botão já está corretamente desabilitado com 'disabled' */}
                         <CustomButton title="Cadastrar" onPress={handleRegister} disabled={isLoading} />
 
                         <View style={styles.footer}>
                             <Text style={styles.footerText}>Já tem uma conta?</Text>
+                            {/* O link de navegação também já está desabilitado */}
                             <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
                                 <Text style={styles.linkText}>Faça login</Text>
                             </TouchableOpacity>

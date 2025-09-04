@@ -56,6 +56,8 @@ const VerifyScreen = ({ route }) => {
         }
     };
 
+    const isBusy = isLoading || isResending;
+
     return (
         <SafeAreaView style={styles.container}>
             <KeyboardAvoidingView
@@ -81,19 +83,24 @@ const VerifyScreen = ({ route }) => {
                             onChangeText={setCode}
                             keyboardType="numeric"
                             maxLength={6}
+                            editable={!isBusy} 
                         />
                     </View>
 
-                    {isLoading ? (
+                    <CustomButton 
+                        title="Verificar e Entrar" 
+                        onPress={handleVerify} 
+                        disabled={isBusy} 
+                    />
+
+                    {isLoading && (
                         <ActivityIndicator size="large" color="#3a86f4" style={{ marginTop: 20 }} />
-                    ) : (
-                        <CustomButton title="Verificar e Entrar" onPress={handleVerify} />
                     )}
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Não recebeu o código?</Text>
-                        <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0 || isResending}>
-                            <Text style={[styles.linkText, (resendCooldown > 0 || isResending) && styles.linkDisabled]}>
+                        <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0 || isBusy}>
+                            <Text style={[styles.linkText, (resendCooldown > 0 || isBusy) && styles.linkDisabled]}>
                                 {isResending ? 'A enviar...' : resendCooldown > 0 ? `Aguarde ${resendCooldown}s` : 'Reenviar Código'}
                             </Text>
                         </TouchableOpacity>
