@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     imageText: { color: COLORS.primary, fontSize: 16, marginTop: 10, fontWeight: 'bold' },
     locationContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 15, marginHorizontal: 20, marginTop: 20, backgroundColor: COLORS.inactive, borderRadius: 12 },
     location: { fontSize: 14, color: COLORS.textSecondary, marginLeft: 8, fontWeight: '500' },
-    buttonContainer: { marginTop: 30, paddingHorizontal: 20, paddingBottom: 20 },
+    buttonContainer: { marginTop: 30, paddingHorizontal: 20, paddingBottom: 80 },
     permissionWarning: { backgroundColor: '#fff3cd', borderRadius: 10, padding: 15, alignItems: 'center', marginTop: 20, marginHorizontal: 20 },
     permissionText: { color: '#856404', fontSize: 14, textAlign: 'center', marginBottom: 10 },
     permissionButton: { backgroundColor: '#ffc107', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 8 },

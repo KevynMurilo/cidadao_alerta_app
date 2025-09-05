@@ -50,17 +50,11 @@ const NotificationScreen = () => {
     const [refreshing, setRefreshing] = useState(false);
 
     const fetchNotifications = useCallback(async (isRefreshing = false, pageToFetch = 0) => {
-        if (pageToFetch >= totalPages && !isRefreshing) {
-            return;
-        }
-        
-        if (isRefreshing) {
-             setRefreshing(true);
-        } else if (pageToFetch > 0) {
-            setLoadingMore(true);
-        } else {
-            setLoading(true);
-        }
+        if (pageToFetch >= totalPages && !isRefreshing) return;
+
+        if (isRefreshing) setRefreshing(true);
+        else if (pageToFetch > 0) setLoadingMore(true);
+        else setLoading(true);
 
         try {
             const response = await getNotifications({ page: pageToFetch, size: 15, sort: 'sentAt,desc' });
@@ -97,9 +91,7 @@ const NotificationScreen = () => {
     };
 
     const handleLoadMore = () => {
-        if (!loadingMore && page < totalPages) {
-            fetchNotifications(false, page);
-        }
+        if (!loadingMore && page < totalPages) fetchNotifications(false, page);
     };
 
     const handleMarkAsRead = async (id, index) => {
@@ -108,16 +100,26 @@ const NotificationScreen = () => {
             const newNotifications = [...notifications];
             newNotifications[index].read = true;
             setNotifications(newNotifications);
-        } catch (error)
-        {
+        } catch (error) {
             console.error("Erro ao marcar notificação como lida:", error);
         }
     };
 
-    const renderFooter = () => {
-        if (!loadingMore) return null;
-        return <ActivityIndicator style={{ marginVertical: 20 }} size="small" color="#3a86f4" />;
+    const handleMarkAllAsRead = async () => {
+        const unreadNotifications = notifications.filter(n => !n.read);
+        if (unreadNotifications.length === 0) return;
+
+        try {
+            await Promise.all(unreadNotifications.map(n => markAsRead(n.id)));
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            Alert.alert("Sucesso", "Todas as notificações foram marcadas como lidas.");
+        } catch (error) {
+            console.error("Erro ao marcar todas como lidas:", error);
+            Alert.alert("Erro", "Não foi possível marcar todas as notificações como lidas.");
+        }
     };
+
+    const renderFooter = () => loadingMore ? <ActivityIndicator style={{ marginVertical: 20 }} size="small" color="#3a86f4" /> : null;
 
     const renderEmptyComponent = () => {
         if (loading) return null;
@@ -137,7 +139,7 @@ const NotificationScreen = () => {
             </SafeAreaView>
         );
     }
-    
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -145,8 +147,11 @@ const NotificationScreen = () => {
                     <Ionicons name="arrow-back" size={24} color="#34495e" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Notificações</Text>
-                <View style={styles.headerButton} />
+                <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.headerButton}>
+                    <Ionicons name="checkmark-done-outline" size={24} color="#3a86f4" />
+                </TouchableOpacity>
             </View>
+
             <FlatList
                 data={notifications}
                 keyExtractor={(item) => item.id.toString()}
@@ -168,107 +173,23 @@ const NotificationScreen = () => {
     );
 };
 
-
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f0f4f7',
-    },
-    loaderContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#f0f4f7',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 15,
-        paddingHorizontal: 10,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderColor: '#eee',
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#34495e',
-    },
-    headerButton: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    listContainer: {
-        paddingVertical: 8,
-        flexGrow: 1,
-    },
-    itemContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        padding: 15,
-        marginHorizontal: 12,
-        marginVertical: 6,
-        borderRadius: 12,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 3,
-    },
-    itemUnread: {
-        backgroundColor: '#eaf2ff',
-        borderLeftWidth: 4,
-        borderLeftColor: '#3a86f4'
-    },
-    unreadDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#3a86f4',
-        position: 'absolute',
-        top: 12,
-        left: -4,
-    },
-    iconContainer: {
-        marginRight: 15,
-    },
-    textContainer: {
-        flex: 1,
-    },
-    itemMessage: {
-        fontSize: 15,
-        color: '#34495e',
-        fontWeight: '500',
-        lineHeight: 22,
-    },
-    itemTimestamp: {
-        fontSize: 13,
-        color: '#7f8c8d',
-        marginTop: 4,
-    },
-    emptyContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 40,
-        marginTop: '30%',
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#34495e',
-        marginTop: 20,
-    },
-    emptySubtitle: {
-        fontSize: 16,
-        color: '#7f8c8d',
-        textAlign: 'center',
-        marginTop: 8,
-    },
+    container: { flex: 1, backgroundColor: '#f0f4f7' },
+    loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f4f7' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15, paddingHorizontal: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' },
+    headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#34495e' },
+    headerButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+    listContainer: { paddingVertical: 8, flexGrow: 1 },
+    itemContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 15, marginHorizontal: 12, marginVertical: 6, borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 3 },
+    itemUnread: { backgroundColor: '#eaf2ff', borderLeftWidth: 4, borderLeftColor: '#3a86f4' },
+    unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#3a86f4', position: 'absolute', top: 12, left: -4 },
+    iconContainer: { marginRight: 15 },
+    textContainer: { flex: 1 },
+    itemMessage: { fontSize: 15, color: '#34495e', fontWeight: '500', lineHeight: 22 },
+    itemTimestamp: { fontSize: 13, color: '#7f8c8d', marginTop: 4 },
+    emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, marginTop: '30%' },
+    emptyTitle: { fontSize: 20, fontWeight: 'bold', color: '#34495e', marginTop: 20 },
+    emptySubtitle: { fontSize: 16, color: '#7f8c8d', textAlign: 'center', marginTop: 8 },
 });
 
 export default NotificationScreen;

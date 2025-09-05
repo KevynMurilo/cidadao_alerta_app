@@ -10,8 +10,9 @@ export const AuthProvider = ({ children }) => {
     const [userInfo, setUserInfo] = useState(null);
     const [error, setError] = useState(null);
     const [needsVerification, setNeedsVerification] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleApiError = (e, context) => {
+    const handleApiError = (e) => {
         const errorMessage = e.response?.data?.message || e.message || 'Ocorreu um erro. Tente novamente.';
         setError(errorMessage);
         throw new Error(errorMessage);
@@ -19,6 +20,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         setError(null);
+        setIsLoading(true);
         try {
             const response = await loginUser(email, password);
             if (response.data && response.data.success) {
@@ -31,24 +33,30 @@ export const AuthProvider = ({ children }) => {
                 await initDB();
             }
         } catch (e) {
-            handleApiError(e, 'login');
+            handleApiError(e);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const register = async (name, email, password) => {
         setError(null);
+        setIsLoading(true);
         try {
             const response = await registerUser(name, email, password);
             if (response.data && response.data.success) {
                 setNeedsVerification(email);
             }
         } catch (e) {
-            handleApiError(e, 'register');
+            handleApiError(e);
+        } finally {
+            setIsLoading(false);
         }
     };
-    
+
     const verify = async (email, code) => {
         setError(null);
+        setIsLoading(true);
         try {
             const response = await verifyCode(email, code);
             if (response.data && response.data.success) {
@@ -60,16 +68,21 @@ export const AuthProvider = ({ children }) => {
                 setNeedsVerification(null);
             }
         } catch(e) {
-            handleApiError(e, 'verify');
+            handleApiError(e);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const resendCode = async (email) => {
         setError(null);
+        setIsLoading(true);
         try {
             await resendVerificationCode(email);
         } catch (e) {
-            handleApiError(e, 'resend-code');
+            handleApiError(e);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -109,7 +122,8 @@ export const AuthProvider = ({ children }) => {
             userToken,
             userInfo,
             error,
-            needsVerification
+            needsVerification,
+            isLoading
         }}>
             {children}
         </AuthContext.Provider>

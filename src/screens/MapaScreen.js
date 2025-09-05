@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,6 +16,7 @@ import { getOcorrencias, getOcorrenciaFoto } from '../api/ocorrencias';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import OcorrenciaCard from '../components/OcorrenciaCard';
+import { useFocusEffect } from '@react-navigation/native';
 
 const MapaScreen = ({ navigation, route }) => {
   const { initialRegion, focoId } = route.params || {};
@@ -42,7 +43,6 @@ const MapaScreen = ({ navigation, route }) => {
     return R * c;
   };
 
-  // Agrupando pontos independentemente do status
   const criarClusters = (pontos, raio) => {
     const clustersResult = [];
     const visitados = new Array(pontos.length).fill(false);
@@ -55,7 +55,7 @@ const MapaScreen = ({ navigation, route }) => {
           lon: pontos[i].lon,
           items: [pontos[i]],
           count: 1,
-          statusSet: new Set([pontos[i].status]), // guardar todos status no cluster
+          statusSet: new Set([pontos[i].status]),
           clusterId: `cluster-${i}`,
         };
 
@@ -86,54 +86,57 @@ const MapaScreen = ({ navigation, route }) => {
     } catch (error) {}
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permissão negada', 'Não foi possível acessar a localização.');
-          return;
-        }
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        setLoading(true);
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permissão negada', 'Não foi possível acessar a localização.');
+            return;
+          }
 
-        const response = await getOcorrencias();
-        const lista = response.data?.data?.content || [];
-        setOcorrencias(lista);
+          const response = await getOcorrencias();
+          const lista = response.data?.data?.content || [];
+          setOcorrencias(lista);
 
-        lista.forEach((item) => {
-          if (item.photoUrl && item.photoUrl !== 'string') fetchImagem(item.id);
-        });
+          lista.forEach((item) => {
+            if (item.photoUrl && item.photoUrl !== 'string') fetchImagem(item.id);
+          });
 
-        const clustersCalculados = criarClusters(lista, 200);
-        setClusters(clustersCalculados);
+          const clustersCalculados = criarClusters(lista, 200);
+          setClusters(clustersCalculados);
 
-        if (focoId) {
-          const ocorrenciaFoco = lista.find((o) => o.id === focoId);
-          if (ocorrenciaFoco) {
-            setOcorrenciasSelecionadas([ocorrenciaFoco]);
-            setModalVisible(true);
-            if (mapRef.current) {
-              setTimeout(() => {
-                mapRef.current.animateToRegion(
-                  {
-                    latitude: ocorrenciaFoco.lat,
-                    longitude: ocorrenciaFoco.lon,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                  },
-                  1000
-                );
-              }, 500);
+          if (focoId) {
+            const ocorrenciaFoco = lista.find((o) => o.id === focoId);
+            if (ocorrenciaFoco) {
+              setOcorrenciasSelecionadas([ocorrenciaFoco]);
+              setModalVisible(true);
+              if (mapRef.current) {
+                setTimeout(() => {
+                  mapRef.current.animateToRegion(
+                    {
+                      latitude: ocorrenciaFoco.lat,
+                      longitude: ocorrenciaFoco.lon,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01,
+                    },
+                    1000
+                  );
+                }, 500);
+              }
             }
           }
+        } catch (error) {
+          Alert.alert('Erro ao carregar mapa', error.message);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        Alert.alert('Erro ao carregar mapa', error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [focoId]);
+      };
+      fetchData();
+    }, [focoId])
+  );
 
   const abrirLista = (items) => {
     setOcorrenciasSelecionadas(items);
@@ -141,10 +144,7 @@ const MapaScreen = ({ navigation, route }) => {
   };
 
   const renderItem = ({ item }) => (
-    <OcorrenciaCard
-      item={item}
-      imagem={imagens[item.id]}
-    />
+    <OcorrenciaCard item={item} imagem={imagens[item.id]} />
   );
 
   return (
