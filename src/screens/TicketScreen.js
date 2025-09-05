@@ -38,8 +38,8 @@ const TicketItem = ({ item, onPress }) => {
     item.status === 'ABERTO'
       ? COLORS.aberto
       : item.status === 'EM_ANDAMENTO'
-        ? COLORS.emAndamento
-        : COLORS.fechado;
+      ? COLORS.emAndamento
+      : COLORS.fechado;
 
   return (
     <View style={styles.itemContainer}>
