@@ -40,8 +40,8 @@ const TicketDetailScreen = ({ route, navigation }) => {
     ticket.status === 'ABERTO'
       ? COLORS.aberto
       : ticket.status === 'EM_ANDAMENTO'
-      ? COLORS.emAndamento
-      : COLORS.fechado;
+        ? COLORS.emAndamento
+        : COLORS.fechado;
 
   const fetchMessages = async () => {
     try {
@@ -154,21 +154,23 @@ const TicketDetailScreen = ({ route, navigation }) => {
           />
         )}
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Digite sua mensagem..."
-            value={newMessage}
-            onChangeText={setNewMessage}
-          />
-          <TouchableOpacity
-            style={styles.sendButton}
-            onPress={handleSendMessage}
-            disabled={sending}
-          >
-            <Ionicons name="send" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        {ticket.status !== 'FECHADO' && (
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Digite sua mensagem..."
+              value={newMessage}
+              onChangeText={setNewMessage}
+            />
+            <TouchableOpacity
+              style={styles.sendButton}
+              onPress={handleSendMessage}
+              disabled={sending || !newMessage.trim()}
+            >
+              <Ionicons name="send" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
