@@ -98,12 +98,12 @@ const PerfilScreen = () => {
                     <ProfileMenuItem
                         icon="notifications-outline"
                         text="Notificações"
-                        onPress={() => alert('Função "Notificações" ainda não implementada.')}
+                        onPress={() => navigation.navigate('Notifications')}
                     />
                     <ProfileMenuItem
                         icon="help-buoy-outline"
                         text="Ajuda e Suporte"
-                        onPress={() => alert('Função "Ajuda e Suporte" ainda não implementada.')}
+                        onPress={() => navigation.navigate('Tickets')}
                     />
                 </View>
 

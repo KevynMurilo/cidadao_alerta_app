@@ -16,6 +16,11 @@ import PerfilScreen from '../screens/PerfilScreen';
 import EditarPerfilScreen from '../screens/EditarPerfilScreen';
 import NovaOcorrenciaOfflineScreen from '../screens/NovaOcorrenciaOfflineScreen';
 import VerifyScreen from '../screens/VerifyScreen';
+// ✨ 1. Importe a nova tela de notificações ✨
+import NotificationScreen from '../screens/NotificationScreen';
+import TicketScreen from '../screens/TicketScreen';
+import CriarTicketScreen from '../screens/CriarTicketScreen';
+import TicketDetailScreen from '../screens/TicketDetailScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -191,6 +196,10 @@ const AppNavigator = () => {
                 )}
                 <Stack.Screen name="NovaOcorrenciaOffline" component={NovaOcorrenciaOfflineScreen} />
                 <Stack.Screen name="EditarPerfil" component={EditarPerfilScreen} />
+                <Stack.Screen name="Notifications" component={NotificationScreen} />
+                <Stack.Screen name="Tickets" component={TicketScreen} />
+                <Stack.Screen name="CriarTicket" component={CriarTicketScreen} />
+                <Stack.Screen name="TicketDetail" component={TicketDetailScreen} />
             </Stack.Navigator>
         </NavigationContainer>
     );
