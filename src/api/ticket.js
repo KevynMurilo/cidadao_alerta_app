@@ -4,6 +4,10 @@ export const createTicket = (data) => {
     return apiClient.post('/tickets', data);
 };
 
+export const getTicket = (ticketId) => {
+  return apiClient.get(`/tickets/${ticketId}`);
+};
+
 export const getMyTickets = (params = {}) => {
     return apiClient.get('/tickets/me', { params });
 };

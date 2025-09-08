@@ -21,6 +21,7 @@ import NotificationScreen from '../screens/NotificationScreen';
 import TicketScreen from '../screens/TicketScreen';
 import CriarTicketScreen from '../screens/CriarTicketScreen';
 import TicketDetailScreen from '../screens/TicketDetailScreen';
+import DetalheOcorrenciaScreen from '../screens/DetalheOcorrenciaScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -200,6 +201,7 @@ const AppNavigator = () => {
                 <Stack.Screen name="Tickets" component={TicketScreen} />
                 <Stack.Screen name="CriarTicket" component={CriarTicketScreen} />
                 <Stack.Screen name="TicketDetail" component={TicketDetailScreen} />
+                <Stack.Screen name="DetalheOcorrencia" component={DetalheOcorrenciaScreen} />
             </Stack.Navigator>
         </NavigationContainer>
     );

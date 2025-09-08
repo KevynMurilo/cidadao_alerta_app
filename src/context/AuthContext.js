@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }) => {
                 await initDB();
             }
         } catch (e) {
+            console.log(e.message);
             handleApiError(e);
         } finally {
             setIsLoading(false);

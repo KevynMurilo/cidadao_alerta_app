@@ -12,6 +12,10 @@ export const createOcorrencia = (data) => {
     });
 };
 
+export const getOcorrencia = (ocorrenciaId) => {
+  return apiClient.get(`/ocorrencias/${ocorrenciaId}`);
+};
+
 export const getMinhasOcorrencias = (params = {}) => {
     return apiClient.get('/ocorrencias/me', { params });
 };

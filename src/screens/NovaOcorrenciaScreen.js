@@ -265,8 +265,24 @@ const styles = StyleSheet.create({
     headerSubtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 4 },
     section: { marginTop: 20, paddingHorizontal: 20 },
     sectionTitle: { fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 15 },
-    categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-    categoryItem: { width: 100, height: 100, backgroundColor: COLORS.card, borderRadius: 16, justifyContent: 'center', alignItems: 'center', padding: 8, marginBottom: 10, borderWidth: 2 },
+    categoryGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between'
+    },
+    categoryItem: {
+        flexGrow: 1,
+        flexBasis: '30%',
+        height: 100,
+        backgroundColor: COLORS.card,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 8,
+        marginBottom: 10,
+        marginRight: 10,
+        borderWidth: 2
+    },
     iconContainer: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
     categoryText: { textAlign: 'center', fontSize: 12, fontWeight: '500' },
     input: { backgroundColor: COLORS.card, borderRadius: 12, padding: 15, fontSize: 16, minHeight: 100, textAlignVertical: 'top', borderColor: COLORS.inactive, borderWidth: 1, color: COLORS.textPrimary },

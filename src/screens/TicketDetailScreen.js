@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { getTicketMessages, createTicketMessage } from '../api/ticketMessages';
 import { createWebSocketClient } from '../api/websocket';
+import { getTicket } from '../api/ticket';
 
 const COLORS = {
   primary: '#3a86f4',
@@ -28,41 +29,59 @@ const COLORS = {
 };
 
 const TicketDetailScreen = ({ route, navigation }) => {
-  const { ticket } = route.params;
+  const { ticketId } = route.params;
 
+  const [ticket, setTicket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [stompClient, setStompClient] = useState(null);
 
-  const statusColor =
-    ticket.status === 'ABERTO'
-      ? COLORS.aberto
-      : ticket.status === 'EM_ANDAMENTO'
-        ? COLORS.emAndamento
-        : COLORS.fechado;
+  const stompClientRef = useRef(null);
 
-  const fetchMessages = async () => {
+  const fetchTicketDetail = useCallback(async () => {
     try {
-      const response = await getTicketMessages(ticket.id, {
+      const ticketResponse = await getTicket(ticketId);
+      // CORREÇÃO APLICADA AQUI: Acessando a propriedade aninhada 'data'
+      setTicket(ticketResponse.data.data);
+
+      const messagesResponse = await getTicketMessages(ticketId, {
         page: 0,
         size: 50,
         sort: 'sentAt,asc',
       });
-      setMessages(response.data.data.content || []);
+      setMessages(messagesResponse.data.data.content || []);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar as mensagens.');
+      Alert.alert('Erro', 'Não foi possível carregar os dados do ticket.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [ticketId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchTicketDetail();
+
+    createWebSocketClient(ticketId, (newMsg) => {
+      if (isMounted) setMessages((prev) => [...prev, newMsg]);
+    }).then(client => {
+      stompClientRef.current = client;
+    });
+
+    return () => {
+      isMounted = false;
+      if (stompClientRef.current && stompClientRef.current.active) {
+        stompClientRef.current.deactivate();
+      }
+    };
+  }, [ticketId, fetchTicketDetail]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
     setSending(true);
     try {
-      await createTicketMessage(ticket.id, { content: newMessage });
+      await createTicketMessage(ticketId, { content: newMessage });
       setNewMessage('');
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível enviar a mensagem.');
@@ -71,22 +90,15 @@ const TicketDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  useEffect(() => {
-    fetchMessages();
+  const statusColor =
+    ticket?.status === 'ABERTO'
+      ? COLORS.aberto
+      : ticket?.status === 'EM_ANDAMENTO'
+        ? COLORS.emAndamento
+        : COLORS.fechado;
 
-    (async () => {
-      const client = await createWebSocketClient(ticket.id, (newMsg) => {
-        setMessages((prev) => [...prev, newMsg]);
-      });
-      setStompClient(client);
-    })();
-
-    return () => {
-      if (stompClient && stompClient.active) stompClient.deactivate();
-    };
-  }, []);
-
-  const renderMessage = ({ item }) => {
+  const renderMessage = useCallback(({ item }) => {
+    if (!ticket) return null;
     const isUser = item.sentBy?.id === ticket.createdBy?.id;
     return (
       <View
@@ -105,28 +117,41 @@ const TicketDetailScreen = ({ route, navigation }) => {
         </Text>
       </View>
     );
-  };
+  }, [ticket]);
 
-  const renderHeader = useCallback(() => (
-    <View style={styles.card}>
-      <View style={[styles.statusBadge, { backgroundColor: statusColor }]} />
-      <Text style={styles.label}>Título</Text>
-      <Text style={styles.value}>{ticket.subject}</Text>
-      <Text style={styles.label}>Descrição</Text>
-      <Text style={styles.value}>{ticket.description}</Text>
-      <Text style={styles.label}>Status</Text>
-      <Text style={[styles.value, { color: statusColor }]}>{ticket.status}</Text>
-      <Text style={styles.label}>Prioridade</Text>
-      <Text style={styles.value}>{ticket.priority}</Text>
-      {ticket.createdAt && (
-        <>
-          <Text style={styles.label}>Criado em</Text>
-          <Text style={styles.value}>{new Date(ticket.createdAt).toLocaleString()}</Text>
-        </>
-      )}
-      <Text style={styles.sectionTitle}>Mensagens</Text>
-    </View>
-  ), [ticket]);
+  const renderHeader = useCallback(() => {
+    if (!ticket) return null;
+
+    return (
+      <View style={styles.card}>
+        <View style={[styles.statusBadge, { backgroundColor: statusColor }]} />
+        <Text style={styles.label}>Título</Text>
+        <Text style={styles.value}>{ticket.subject}</Text>
+        <Text style={styles.label}>Descrição</Text>
+        <Text style={styles.value}>{ticket.description}</Text>
+        <Text style={styles.label}>Status</Text>
+        <Text style={[styles.value, { color: statusColor }]}>{ticket.status}</Text>
+        <Text style={styles.label}>Prioridade</Text>
+        <Text style={styles.value}>{ticket.priority}</Text>
+        {ticket.createdAt && (
+          <>
+            <Text style={styles.label}>Criado em</Text>
+            <Text style={styles.value}>{new Date(ticket.createdAt).toLocaleString()}</Text>
+          </>
+        )}
+        <Text style={styles.sectionTitle}>Mensagens</Text>
+      </View>
+    );
+  }, [ticket, statusColor]);
+
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -142,19 +167,15 @@ const TicketDetailScreen = ({ route, navigation }) => {
           <View style={styles.headerButton} />
         </View>
 
-        {loading ? (
-          <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
-        ) : (
-          <FlatList
-            data={messages}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderMessage}
-            ListHeaderComponent={renderHeader}
-            contentContainerStyle={{ padding: 20 }}
-          />
-        )}
+        <FlatList
+          data={messages}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderMessage}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={{ padding: 20 }}
+        />
 
-        {ticket.status !== 'FECHADO' && (
+        {ticket?.status !== 'FECHADO' && (
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -215,27 +236,11 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  userMessage: {
-    backgroundColor: COLORS.primary,
-    borderTopRightRadius: 0,
-  },
-  supportMessage: {
-    backgroundColor: '#e5e5ea',
-    borderTopLeftRadius: 0,
-  },
-  messageAuthor: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 2,
-    color: COLORS.textSecondary,
-  },
+  userMessage: { backgroundColor: COLORS.primary, borderTopRightRadius: 0 },
+  supportMessage: { backgroundColor: '#e5e5ea', borderTopLeftRadius: 0 },
+  messageAuthor: { fontSize: 12, fontWeight: '600', marginBottom: 2, color: COLORS.textSecondary },
   messageContent: { fontSize: 14 },
-  messageDate: {
-    fontSize: 10,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-    textAlign: 'right',
-  },
+  messageDate: { fontSize: 10, color: COLORS.textSecondary, marginTop: 2, textAlign: 'right' },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -250,12 +255,7 @@ const styles = StyleSheet.create({
     margin: 10,
   },
   input: { flex: 1, fontSize: 16, padding: 8 },
-  sendButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 20,
-    padding: 10,
-    marginLeft: 8,
-  },
+  sendButton: { backgroundColor: COLORS.primary, borderRadius: 20, padding: 10, marginLeft: 8 },
 });
 
 export default TicketDetailScreen;

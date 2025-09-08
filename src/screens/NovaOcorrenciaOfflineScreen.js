@@ -71,7 +71,7 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
         photoUri: photo.uri,
         lat: location.coords.latitude,
         lon: location.coords.longitude,
-        categoryId: selectedCategory.id, 
+        categoryId: selectedCategory.id,
         createdAt: new Date().toISOString(),
       };
 
@@ -198,8 +198,24 @@ const styles = StyleSheet.create({
   imageText: { color: COLORS.primary, fontSize: 16, marginTop: 10, fontWeight: "bold" },
   location: { fontSize: 14, marginTop: 10, color: COLORS.textSecondary },
   buttonContainer: { marginTop: 20 },
-  categoryGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-  categoryItem: { width: 100, height: 100, backgroundColor: COLORS.card, borderRadius: 16, justifyContent: "center", alignItems: "center", padding: 8, marginBottom: 10, borderWidth: 2 },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
+  },
+  categoryItem: {
+    flexGrow: 1,
+    flexBasis: '30%',
+    height: 100,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8,
+    marginBottom: 10,
+    marginRight: 10,
+    borderWidth: 2
+  },
   iconContainer: { width: 50, height: 50, borderRadius: 25, justifyContent: "center", alignItems: "center", marginBottom: 8 },
   categoryText: { textAlign: "center", fontSize: 12, fontWeight: "500" },
 });

@@ -25,7 +25,6 @@ const NotificationItem = ({ item, onPress }) => {
         <TouchableOpacity
             style={[styles.itemContainer, !item.read && styles.itemUnread]}
             onPress={onPress}
-            disabled={item.read}
         >
             {!item.read && <View style={styles.unreadDot} />}
             <View style={styles.iconContainer}>
@@ -94,17 +93,6 @@ const NotificationScreen = () => {
         if (!loadingMore && page < totalPages) fetchNotifications(false, page);
     };
 
-    const handleMarkAsRead = async (id, index) => {
-        try {
-            await markAsRead(id);
-            const newNotifications = [...notifications];
-            newNotifications[index].read = true;
-            setNotifications(newNotifications);
-        } catch (error) {
-            console.error("Erro ao marcar notificação como lida:", error);
-        }
-    };
-
     const handleMarkAllAsRead = async () => {
         const unreadNotifications = notifications.filter(n => !n.read);
         if (unreadNotifications.length === 0) return;
@@ -116,6 +104,41 @@ const NotificationScreen = () => {
         } catch (error) {
             console.error("Erro ao marcar todas como lidas:", error);
             Alert.alert("Erro", "Não foi possível marcar todas as notificações como lidas.");
+        }
+    };
+
+    const handleNotificationPress = async (item, index) => {
+        try {
+            await markAsRead(item.id);
+            const newNotifications = [...notifications];
+            newNotifications[index].read = true;
+            setNotifications(newNotifications);
+
+            const type = (item.type || 'OUTRO').toUpperCase();
+            const relatedId = item.relatedEntityId;
+
+            switch (type) {
+                case 'OCORRENCIA':
+                    if (relatedId) {
+                        navigation.navigate('DetalheOcorrencia', { id: relatedId });
+                    } else {
+                        Alert.alert('Erro', 'Ocorrência não encontrada.');
+                    }
+                    break;
+                case 'TICKET':
+                    if (relatedId) {
+                        navigation.navigate('TicketDetail', { ticketId: relatedId });
+                    } else {
+                        Alert.alert('Erro', 'Ticket não encontrado.');
+                    }
+                    break;
+                case 'OUTRO':
+                default:
+                    Alert.alert('Info', item.message || 'Sem mensagem');
+                    break;
+            }
+        } catch (error) {
+            console.error("Erro ao tratar notificação:", error);
         }
     };
 
@@ -156,9 +179,9 @@ const NotificationScreen = () => {
                 data={notifications}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item, index }) => (
-                    <NotificationItem 
-                        item={item} 
-                        onPress={() => handleMarkAsRead(item.id, index)} 
+                    <NotificationItem
+                        item={item}
+                        onPress={() => handleNotificationPress(item, index)}
                     />
                 )}
                 contentContainerStyle={styles.listContainer}
