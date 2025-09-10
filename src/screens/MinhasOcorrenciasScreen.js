@@ -7,9 +7,8 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  TouchableOpacity,
-  Image,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { getMinhasOcorrencias, getOcorrenciaFoto, createOcorrencia } from '../api/ocorrencias';
@@ -17,11 +16,12 @@ import { getPendingOcorrencias, removeOcorrenciaLocal } from '../localDB';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CATEGORIES } from '../utils/categories';
+import * as FileSystem from 'expo-file-system';
+import OcorrenciaCard from '../components/OcorrenciaCard';
 
 const COLORS = {
   primary: '#4A90E2',
   background: '#F7F8FA',
-  card: '#FFFFFF',
   textPrimary: '#2C3E50',
   textSecondary: '#7F8C8D',
   danger: '#E74C3C',
@@ -29,15 +29,12 @@ const COLORS = {
   white: '#FFFFFF',
 };
 
-
 const MinhasOcorrenciasScreen = ({ navigation }) => {
   const { userInfo } = useContext(AuthContext);
-
   const [activeTab, setActiveTab] = useState('ocorrencias');
   const [ocorrencias, setOcorrencias] = useState([]);
   const [offlineOcorrencias, setOfflineOcorrencias] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState(null);
   const [categoriaFilter, setCategoriaFilter] = useState(null);
   const [imagens, setImagens] = useState({});
 
@@ -45,7 +42,7 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     try {
       const base64 = await getOcorrenciaFoto(id);
       setImagens(prev => ({ ...prev, [id]: base64 }));
-    } catch (error) { }
+    } catch {}
   };
 
   const fetchData = async (tab) => {
@@ -53,22 +50,11 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     setLoading(true);
     try {
       if (tab === 'ocorrencias') {
-        const params = {
-          page: 0,
-          size: 50,
-          category: categoriaFilter || undefined,
-        };
+        const params = { page: 0, size: 50, category: categoriaFilter || undefined };
         const response = await getMinhasOcorrencias(params);
-        let lista = Array.isArray(response.data?.data?.content)
-          ? response.data.data.content
-          : [];
-
+        let lista = Array.isArray(response.data?.data?.content) ? response.data.data.content : [];
         setOcorrencias(lista);
-
-        lista.forEach(item => {
-          if (item.photoUrl && item.photoUrl !== 'string') fetchImagem(item.id);
-        });
-
+        lista.forEach(item => { if (item.photoUrl && item.photoUrl !== 'string') fetchImagem(item.id); });
         const offlineList = await getPendingOcorrencias();
         setOfflineOcorrencias(
           offlineList.map(o => ({
@@ -77,7 +63,6 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
             status: o.syncStatus || 'PENDING',
           }))
         );
-
       } else if (tab === 'offline') {
         const offlineList = await getPendingOcorrencias();
         setOfflineOcorrencias(
@@ -87,7 +72,6 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
               categoryName: CATEGORIES.find(c => c.id === o.categoryId)?.name || 'Offline',
               status: o.syncStatus || 'PENDING',
             }))
-            .filter(o => !statusFilter || o.status === statusFilter)
             .filter(o => !categoriaFilter || o.categoryId === categoriaFilter)
         );
       }
@@ -98,64 +82,51 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     }
   };
 
-  useFocusEffect(useCallback(() => {
-    fetchData(activeTab);
-  }, [activeTab, userInfo, statusFilter, categoriaFilter]));
+  useFocusEffect(useCallback(() => { fetchData(activeTab); }, [activeTab, userInfo, categoriaFilter]));
 
   const handleCardPress = (item) => {
-    if (item.lat && item.lon && item.lat !== 0 && item.lon !== 0) {
-      navigation.navigate('Mapa', {
-        initialRegion: {
-          latitude: item.lat,
-          longitude: item.lon,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        focoId: item.id,
-      });
-    } else {
-      Alert.alert('Localização Indisponível', 'Esta ocorrência não possui dados de localização.');
-    }
+    navigation.navigate('DetalheOcorrencia', { id: item.id });
   };
 
   const sendOfflineOcorrencia = async (ocorrencia) => {
     try {
+      const fileInfo = await FileSystem.getInfoAsync(ocorrencia.photoUri);
+      if (!fileInfo.exists) { Alert.alert("Erro", "Imagem não encontrada."); return; }
+
       const formData = new FormData();
       formData.append("description", ocorrencia.description);
       formData.append("lat", ocorrencia.lat);
       formData.append("lon", ocorrencia.lon);
+
       const uriParts = ocorrencia.photoUri.split(".");
       const fileType = uriParts[uriParts.length - 1];
       formData.append("photo", {
-        uri: ocorrencia.photoUri.replace("file://", ""),
+        uri: ocorrencia.photoUri,
         name: `photo.${fileType}`,
         type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
       });
       formData.append("category", ocorrencia.categoryId);
+
       await createOcorrencia(formData);
       await removeOcorrenciaLocal(ocorrencia.id);
       Alert.alert("Sucesso!", "Ocorrência enviada!");
       fetchData('offline');
       fetchData('ocorrencias');
     } catch (error) {
+      console.log(error);
       Alert.alert("Erro", "Falha ao enviar ocorrência offline.");
     }
   };
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => handleCardPress(item)}>
-      <Image source={{ uri: imagens[item.id] || item.photoUri }} style={styles.image} />
-      <View style={styles.cardContent}>
-        <Text style={styles.category}>{item.categoryName}</Text>
-        <Text style={styles.description}>{item.description}</Text>
-        <Text style={[styles.status, item.status === 'PENDING' ? { color: COLORS.danger } : { color: COLORS.success }]}>{item.status === 'PENDING' ? 'Pendente' : 'Enviado'}</Text>
-        {activeTab === 'offline' && item.status === 'PENDING' && (
-          <TouchableOpacity style={styles.sendButton} onPress={() => sendOfflineOcorrencia(item)}>
-            <Text style={styles.sendButtonText}>Enviar</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
+    <OcorrenciaCard
+      item={item}
+      imagem={imagens[item.id] || item.photoUri}
+      onPress={activeTab === 'offline' && item.status === 'PENDING'
+        ? () => sendOfflineOcorrencia(item)
+        : () => handleCardPress(item)
+      }
+    />
   );
 
   const FilterButton = ({ label, value, icon, isActive, onPress }) => (
@@ -218,71 +189,19 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, marginBottom: 100 },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.card,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  tab: {
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-    marginHorizontal: 10,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  tabContainer: { flexDirection: 'row', backgroundColor: COLORS.white, paddingHorizontal: 20, paddingTop: 10 },
+  tab: { paddingVertical: 12, paddingHorizontal: 15, borderBottomWidth: 3, borderBottomColor: 'transparent', marginHorizontal: 10 },
   activeTab: { borderBottomColor: COLORS.primary },
   tabText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 16 },
   activeTabText: { color: COLORS.primary },
   list: { padding: 20, flexGrow: 1 },
   emptyContainer: { justifyContent: 'center', alignItems: 'center', padding: 20 },
 
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    marginBottom: 20,
-    overflow: 'hidden',
-    elevation: 2,
-  },
-  image: {
-    width: '100%',
-    height: 200,
-  },
-  cardContent: {
-    padding: 15,
-  },
-  category: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 5,
-    color: COLORS.primary,
-  },
-  description: {
-    fontSize: 14,
-    marginBottom: 10,
-    color: COLORS.textPrimary,
-  },
-  status: {
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  sendButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  sendButtonText: {
-    color: COLORS.card,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-
   filterWrapper: { paddingBottom: 10, paddingHorizontal: 20 },
   filterTitle: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 12, marginTop: 15 },
   filterScroll: { paddingVertical: 4 },
-  filterButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 30, marginRight: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  filterButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 30, marginRight: 12, borderWidth: 1, borderColor: '#E2E8F0' },
   filterButtonActive: { backgroundColor: COLORS.primary, borderWidth: 0 },
   filterButtonText: { color: COLORS.textPrimary, fontWeight: '600', fontSize: 14 },
   filterButtonTextActive: { color: COLORS.white },

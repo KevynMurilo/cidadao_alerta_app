@@ -35,7 +35,6 @@ const DetalheOcorrenciaScreen = () => {
                 const data = response.data.data;
                 setOcorrencia(data);
 
-                // Sempre tenta buscar a imagem via getOcorrenciaFoto
                 try {
                     const base64 = await getOcorrenciaFoto(id);
                     setImagem(base64);
@@ -53,13 +52,7 @@ const DetalheOcorrenciaScreen = () => {
     }, [id]);
 
     const handleVerNoMapa = () => {
-        if (
-            !ocorrencia ||
-            !ocorrencia.lat ||
-            !ocorrencia.lon ||
-            ocorrencia.lat === 0 ||
-            ocorrencia.lon === 0
-        ) {
+        if (!ocorrencia || !ocorrencia.lat || !ocorrencia.lon || ocorrencia.lat === 0 || ocorrencia.lon === 0) {
             Alert.alert(
                 'Localização Indisponível',
                 'Esta ocorrência não possui dados de localização para ser exibida no mapa.'
@@ -118,7 +111,6 @@ const DetalheOcorrenciaScreen = () => {
                             source={{ uri: imagem }}
                             style={styles.image}
                         />
-
                     </TouchableOpacity>
                 ) : (
                     <View style={styles.noImage}>
@@ -127,15 +119,18 @@ const DetalheOcorrenciaScreen = () => {
                     </View>
                 )}
 
+                {/* Card Informações Principais */}
                 <View style={styles.card}>
                     <Text style={styles.title}>{ocorrencia.title || 'Sem título'}</Text>
+                    <View style={styles.divider} />
                     <Text style={styles.label}>Descrição:</Text>
                     <Text style={styles.text}>{ocorrencia.description || 'Sem descrição'}</Text>
                 </View>
 
+                {/* Card Informações Detalhadas */}
                 <View style={styles.card}>
                     <Text style={styles.label}>Status:</Text>
-                    <Text style={styles.text}>{ocorrencia.status}</Text>
+                    <Text style={[styles.text, { fontWeight: 'bold', color: getStatusColor(ocorrencia.status) }]}>{ocorrencia.status}</Text>
 
                     <Text style={styles.label}>Categoria:</Text>
                     <Text style={styles.text}>{ocorrencia.categoryName || 'Não definida'}</Text>
@@ -167,12 +162,21 @@ const DetalheOcorrenciaScreen = () => {
                             style={styles.modalImage}
                             resizeMode="contain"
                         />
-
                     </TouchableOpacity>
                 </View>
             </Modal>
         </SafeAreaView>
     );
+};
+
+// Função para definir cor do status
+const getStatusColor = (status) => {
+    switch (status) {
+        case 'ABERTO': return '#E74C3C';
+        case 'EM_ANDAMENTO': return '#F39C12';
+        case 'FINALIZADO': return '#2ECC71';
+        default: return '#34495e';
+    }
 };
 
 const styles = StyleSheet.create({
@@ -187,14 +191,12 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderColor: '#eee',
     },
-
     headerButton: {
         position: 'absolute',
         left: 10,
         top: 14,
         padding: 4,
     },
-
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
@@ -202,12 +204,11 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 
-
     content: { padding: 20, paddingBottom: 40 },
 
     image: {
         width: '100%',
-        height: 220,
+        height: 240,
         borderRadius: 15,
         marginBottom: 20,
         borderWidth: 1,
@@ -218,10 +219,9 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 5,
     },
-
     noImage: {
         width: '100%',
-        height: 220,
+        height: 240,
         borderRadius: 15,
         backgroundColor: '#ECF0F1',
         justifyContent: 'center',
@@ -231,17 +231,21 @@ const styles = StyleSheet.create({
 
     card: {
         backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 15,
+        borderRadius: 16,
+        padding: 18,
         marginBottom: 15,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 3,
+        shadowRadius: 4,
         elevation: 3,
     },
-
-    title: { fontSize: 20, fontWeight: 'bold', color: '#34495e', marginBottom: 10 },
+    divider: {
+        height: 1,
+        backgroundColor: '#E5E5E5',
+        marginVertical: 10,
+    },
+    title: { fontSize: 22, fontWeight: 'bold', color: '#34495e', marginBottom: 10 },
 
     label: { fontSize: 15, fontWeight: '600', color: '#34495e', marginTop: 8 },
     text: { fontSize: 15, color: '#2c3e50', marginTop: 3 },
@@ -252,13 +256,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#3a86f4',
         paddingVertical: 14,
-        borderRadius: 12,
-        marginTop: 10,
+        borderRadius: 14,
+        marginTop: 15,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 5 },
         shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 4,
+        shadowRadius: 5,
+        elevation: 5,
     },
     mapButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16, marginLeft: 8 },
 
@@ -272,8 +276,8 @@ const styles = StyleSheet.create({
     },
     modalImage: {
         width: width - 40,
-        height: height * 0.7,
-        borderRadius: 12,
+        height: height * 0.75,
+        borderRadius: 16,
     },
 });
 

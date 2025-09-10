@@ -16,7 +16,6 @@ import PerfilScreen from '../screens/PerfilScreen';
 import EditarPerfilScreen from '../screens/EditarPerfilScreen';
 import NovaOcorrenciaOfflineScreen from '../screens/NovaOcorrenciaOfflineScreen';
 import VerifyScreen from '../screens/VerifyScreen';
-// ✨ 1. Importe a nova tela de notificações ✨
 import NotificationScreen from '../screens/NotificationScreen';
 import TicketScreen from '../screens/TicketScreen';
 import CriarTicketScreen from '../screens/CriarTicketScreen';

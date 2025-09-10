@@ -30,10 +30,8 @@ const OcorrenciaCard = ({ item, imagem, onPress }) => {
         ? new Date(item.createdAt).toLocaleDateString('pt-BR')
         : '';
 
-    const CardWrapper = onPress ? TouchableOpacity : View;
-
     return (
-        <CardWrapper style={styles.card} onPress={onPress}>
+        <View style={styles.card}>
             {imagem ? (
                 <Image source={{ uri: imagem }} style={styles.cardImage} />
             ) : (
@@ -63,8 +61,20 @@ const OcorrenciaCard = ({ item, imagem, onPress }) => {
                     />
                     <Text style={styles.cardDate}>{dataFormatada}</Text>
                 </View>
+                {/* Botão de abrir detalhes */}
+                {onPress && (
+                    <TouchableOpacity style={styles.detailButton} onPress={onPress}>
+                        <Text style={styles.detailButtonText}>Ver Detalhes</Text>
+                        <MaterialCommunityIcons
+                            name="arrow-right-circle-outline"
+                            size={18}
+                            color={'#FFF'}
+                            style={{ marginLeft: 8 }}
+                        />
+                    </TouchableOpacity>
+                )}
             </View>
-        </CardWrapper>
+        </View>
     );
 };
 
@@ -99,10 +109,23 @@ const styles = StyleSheet.create({
     },
     cardCategory: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary, flex: 1 },
     cardDesc: { fontSize: 15, color: COLORS.textSecondary, lineHeight: 22, marginBottom: 16 },
-    cardFooter: { flexDirection: 'row', alignItems: 'center' },
+    cardFooter: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
     cardDate: { fontSize: 14, color: COLORS.textSecondary, marginLeft: 8 },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
     statusBadgeText: { fontSize: 12, fontWeight: 'bold' },
+    detailButton: {
+        flexDirection: 'row',
+        backgroundColor: COLORS.primary,
+        paddingVertical: 10,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    detailButtonText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
 });
 
 export default OcorrenciaCard;

@@ -96,22 +96,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleCardPress = (item) => {
-    if (item.lat && item.lon && item.lat !== 0 && item.lon !== 0) {
-      navigation.navigate('Mapa', {
-        initialRegion: {
-          latitude: item.lat,
-          longitude: item.lon,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        focoId: item.id,
-      });
-    } else {
-      Alert.alert(
-        'Localização Indisponível',
-        'Esta ocorrência não possui dados de localização para ser exibida no mapa.'
-      );
-    }
+    navigation.navigate('DetalheOcorrencia', { id: item.id });
   };
 
   return (
