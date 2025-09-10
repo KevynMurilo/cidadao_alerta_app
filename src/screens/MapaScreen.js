@@ -20,7 +20,6 @@ import OcorrenciaCard from '../components/OcorrenciaCard';
 import { useFocusEffect } from '@react-navigation/native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
-// Componente DateSelector usando modal nativo
 const DateSelector = ({ label, date, onChange }) => {
   const [isPickerVisible, setPickerVisible] = useState(false);
 
@@ -50,7 +49,6 @@ const DateSelector = ({ label, date, onChange }) => {
   );
 };
 
-// --- Componente principal ---
 const MapaScreen = ({ navigation, route }) => {
   const { initialRegion, focoId } = route.params || {};
   const mapRef = useRef(null);
@@ -63,7 +61,6 @@ const MapaScreen = ({ navigation, route }) => {
   const [imagens, setImagens] = useState({});
   const [filterModal, setFilterModal] = useState(false);
 
-  // filtros
   const [statusFilter, setStatusFilter] = useState(null);
   const [categoriaFilter, setCategoriaFilter] = useState(null);
   const [startDate, setStartDate] = useState(null);
@@ -260,7 +257,7 @@ const MapaScreen = ({ navigation, route }) => {
       )}
 
       {/* Botão flutuante */}
-      <View style={[styles.fabContainer, { top: Platform.OS === 'ios' ? 50 : 20 }]}>
+      <View style={[styles.fabContainer, { marginTop: Platform.OS === 'ios' ? 60 : 40 }]}>
         <TouchableOpacity style={styles.fab} onPress={() => setFilterModal(true)}>
           <Ionicons name="filter" size={22} color="#fff" />
         </TouchableOpacity>

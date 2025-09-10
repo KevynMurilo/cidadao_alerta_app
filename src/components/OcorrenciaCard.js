@@ -18,7 +18,7 @@ const statusConfig = {
     FINALIZADO: { color: COLORS.finalizado, text: 'Finalizado', bg: '#d4efdf' },
 };
 
-const OcorrenciaCard = ({ item, imagem, onPress }) => {
+const OcorrenciaCard = ({ item, imagem, onPress, texto }) => {
     const config =
         statusConfig[item.status] || {
             color: COLORS.textSecondary,
@@ -62,17 +62,19 @@ const OcorrenciaCard = ({ item, imagem, onPress }) => {
                     <Text style={styles.cardDate}>{dataFormatada}</Text>
                 </View>
                 {/* Botão de abrir detalhes */}
-                {onPress && (
-                    <TouchableOpacity style={styles.detailButton} onPress={onPress}>
-                        <Text style={styles.detailButtonText}>Ver Detalhes</Text>
-                        <MaterialCommunityIcons
-                            name="arrow-right-circle-outline"
-                            size={18}
-                            color={'#FFF'}
-                            style={{ marginLeft: 8 }}
-                        />
-                    </TouchableOpacity>
-                )}
+            {onPress && (
+                <TouchableOpacity style={styles.detailButton} onPress={onPress}>
+                    <Text style={styles.detailButtonText}>
+                        {texto != null && texto !== '' ? texto : 'Ver Detalhes'}
+                    </Text>
+                    <MaterialCommunityIcons
+                        name="arrow-right-circle-outline"
+                        size={18}
+                        color={'#FFF'}
+                        style={{ marginLeft: 8 }}
+                    />
+                </TouchableOpacity>
+            )}
             </View>
         </View>
     );

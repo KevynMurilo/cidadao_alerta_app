@@ -9,6 +9,7 @@ import {
   Alert,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { getMinhasOcorrencias, getOcorrenciaFoto, createOcorrencia } from '../api/ocorrencias';
@@ -126,6 +127,7 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
         ? () => sendOfflineOcorrencia(item)
         : () => handleCardPress(item)
       }
+      texto="Enviar"
     />
   );
 
@@ -140,7 +142,7 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { marginTop: Platform.OS === 'ios' ? 0 : 40 }]}>
       <View style={styles.tabContainer}>
         <TouchableOpacity style={[styles.tab, activeTab === 'ocorrencias' && styles.activeTab]} onPress={() => setActiveTab('ocorrencias')}>
           <Text style={[styles.tabText, activeTab === 'ocorrencias' && styles.activeTabText]}>Minhas Ocorrências</Text>

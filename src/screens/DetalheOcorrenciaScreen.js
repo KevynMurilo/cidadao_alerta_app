@@ -11,6 +11,7 @@ import {
     Modal,
     Dimensions,
     Alert,
+    Platform,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -91,7 +92,7 @@ const DetalheOcorrenciaScreen = () => {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
             {/* Cabeçalho */}
             <View style={styles.header}>
                 <TouchableOpacity
