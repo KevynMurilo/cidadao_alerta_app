@@ -25,6 +25,7 @@
     "date-fns": "^4.1.0",
     "expo": "^54.0.0",
     "expo-crypto": "~14.1.5",
+    "expo-font": "~13.3.2",
     "expo-image-picker": "~16.1.4",
     "expo-location": "~18.1.6",
     "expo-sqlite": "~15.2.14",
@@ -39,8 +40,8 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-web": "^0.20.0",
-    "sockjs-client": "^1.6.1",
-    "expo-font": "~13.3.2"
+    "react-native-webview": "^13.16.0",
+    "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

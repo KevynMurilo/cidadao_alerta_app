@@ -42,7 +42,6 @@ const TicketDetailScreen = ({ route, navigation }) => {
   const fetchTicketDetail = useCallback(async () => {
     try {
       const ticketResponse = await getTicket(ticketId);
-      // CORREÇÃO APLICADA AQUI: Acessando a propriedade aninhada 'data'
       setTicket(ticketResponse.data.data);
 
       const messagesResponse = await getTicketMessages(ticketId, {
