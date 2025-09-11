@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, SafeAreaView, Alert, ScrollView,
+    View, Text, StyleSheet, Alert, ScrollView,
     TouchableOpacity, Image, TextInput, ActivityIndicator, Linking,
     KeyboardAvoidingView, Platform, Dimensions
 } from 'react-native';
@@ -10,6 +10,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomButton from '../components/CustomButton';
 import { createOcorrencia } from '../api/ocorrencias';
 import { CATEGORIES } from '../utils/categories';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
     primary: '#0052A4',
@@ -24,6 +25,7 @@ const COLORS = {
 };
 
 const NovaOcorrenciaScreen = ({ navigation }) => {
+    const insets = useSafeAreaInsets(); // pega espaço seguro
     const [description, setDescription] = useState('');
     const [photo, setPhoto] = useState(null);
     const [location, setLocation] = useState(null);
@@ -143,13 +145,13 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
     const { width } = Dimensions.get('window');
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { paddingBottom: insets.bottom }]}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
             >
                 <ScrollView contentContainerStyle={styles.content}>
-                    <View style={styles.header}>
+                    <View style={[styles.header, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
                         <Text style={styles.headerTitle}>Reportar Ocorrência</Text>
                         <Text style={styles.headerSubtitle}>Preencha os detalhes abaixo</Text>
                     </View>
@@ -242,7 +244,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                         </View>
                     )}
 
-                    <View style={styles.buttonContainer}>
+                    <View style={[styles.buttonContainer, { marginBottom: insets.bottom }]}>
                         {loading ? (
                             <ActivityIndicator size="large" color={COLORS.primary} />
                         ) : (
@@ -259,7 +261,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
     loadingText: { marginTop: 10, fontSize: 16, color: COLORS.textPrimary },
-    content: { paddingBottom: 40 },
+    content: { paddingBottom: 20 },
     header: { paddingHorizontal: 20, paddingVertical: 10 },
     headerTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.textPrimary },
     headerSubtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 4 },
@@ -292,7 +294,7 @@ const styles = StyleSheet.create({
     imageText: { color: COLORS.primary, fontSize: 16, marginTop: 10, fontWeight: 'bold' },
     locationContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 15, marginHorizontal: 20, marginTop: 20, backgroundColor: COLORS.inactive, borderRadius: 12 },
     location: { fontSize: 14, color: COLORS.textSecondary, marginLeft: 8, fontWeight: '500' },
-    buttonContainer: { marginTop: 30, paddingHorizontal: 20, paddingBottom: 80 },
+    buttonContainer: { marginTop: 30, paddingHorizontal: 20 },
     permissionWarning: { backgroundColor: '#fff3cd', borderRadius: 10, padding: 15, alignItems: 'center', marginTop: 20, marginHorizontal: 20 },
     permissionText: { color: '#856404', fontSize: 14, textAlign: 'center', marginBottom: 10 },
     permissionButton: { backgroundColor: '#ffc107', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 8 },

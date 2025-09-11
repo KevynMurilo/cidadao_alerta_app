@@ -180,7 +180,7 @@ const TicketScreen = () => {
 
   return (
     <SafeAreaView
-      style={styles.container}
+      style={[styles.container, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}
     >
       <View style={styles.header}>
         <TouchableOpacity

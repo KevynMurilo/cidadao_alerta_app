@@ -1,37 +1,37 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
-  Dimensions,
   Text,
   TouchableOpacity,
-  SafeAreaView,
-  Modal,
   FlatList,
   ActivityIndicator,
   Alert,
   Platform,
+  ScrollView,
+  Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
-import { getOcorrencias, getOcorrenciaFoto } from '../api/ocorrencias';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import OcorrenciaCard from '../components/OcorrenciaCard';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { useFocusEffect } from '@react-navigation/native';
+
+import { getOcorrencias, getOcorrenciaFoto } from '../api/ocorrencias';
+import OcorrenciaCard from '../components/OcorrenciaCard';
 
 const DateSelector = ({ label, date, onChange }) => {
   const [isPickerVisible, setPickerVisible] = useState(false);
 
   return (
-    <View style={{ marginVertical: 4 }}>
+    <View style={{ marginVertical: 2 }}>
       <TouchableOpacity
         style={styles.dateButton}
         onPress={() => setPickerVisible(true)}
       >
         <Ionicons name="calendar" size={18} color="#34495e" />
-        <Text style={styles.dateText}>
-          {date ? date.toLocaleDateString() : label}
-        </Text>
+        <Text style={styles.dateText}>{date ? date.toLocaleDateString() : label}</Text>
       </TouchableOpacity>
       <DateTimePickerModal
         isVisible={isPickerVisible}
@@ -47,8 +47,7 @@ const DateSelector = ({ label, date, onChange }) => {
   );
 };
 
-const MapaScreen = ({ navigation, route }) => {
-  const { initialRegion, focoId } = route.params || {};
+const MapaScreen = ({ navigation }) => {
   const webViewRef = useRef(null);
 
   const [clusters, setClusters] = useState([]);
@@ -56,8 +55,6 @@ const MapaScreen = ({ navigation, route }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [ocorrenciasSelecionadas, setOcorrenciasSelecionadas] = useState([]);
   const [imagens, setImagens] = useState({});
-  const [filterModal, setFilterModal] = useState(false);
-  const [isWebviewReady, setWebviewReady] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState(null);
   const [categoriaFilter, setCategoriaFilter] = useState(null);
@@ -68,6 +65,9 @@ const MapaScreen = ({ navigation, route }) => {
   const [tempCategoriaFilter, setTempCategoriaFilter] = useState(null);
   const [tempStartDate, setTempStartDate] = useState(null);
   const [tempEndDate, setTempEndDate] = useState(null);
+
+  const [filterModal, setFilterModal] = useState(false);
+  const [isWebviewReady, setWebviewReady] = useState(false);
 
   const getDistance = (p1, p2) => {
     const rad = (x) => (x * Math.PI) / 180;
@@ -121,38 +121,38 @@ const MapaScreen = ({ navigation, route }) => {
       if (base64?.length < 500000) {
         setImagens((prev) => ({ ...prev, [id]: base64 }));
       }
-    } catch (error) {
-      // Silencioso para não poluir
-    }
+    } catch {}
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        await Location.requestForegroundPermissionsAsync();
-        const params = {};
-        if (statusFilter) params.status = statusFilter;
-        if (categoriaFilter) params.categoria = categoriaFilter;
-        if (startDate) params.startDate = startDate.toISOString();
-        if (endDate) params.endDate = endDate.toISOString();
+  // Recarrega dados toda vez que a tela entra em foco
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        setLoading(true);
+        try {
+          await Location.requestForegroundPermissionsAsync();
+          const params = {};
+          if (statusFilter) params.status = statusFilter;
+          if (categoriaFilter) params.categoria = categoriaFilter;
+          if (startDate) params.startDate = startDate.toISOString();
+          if (endDate) params.endDate = endDate.toISOString();
 
-        const response = await getOcorrencias(params);
-        const lista = response.data?.data?.content || [];
-        
-        lista.forEach((item) => {
-          if (item.photoUrl && item.photoUrl !== 'string') fetchImagem(item.id);
-        });
-        const clustersCalculados = criarClusters(lista, 200);
-        setClusters(clustersCalculados);
-      } catch (error) {
-        Alert.alert('Erro ao carregar mapa', error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [statusFilter, categoriaFilter, startDate, endDate]);
+          const response = await getOcorrencias(params);
+          const lista = response.data?.data?.content || [];
+          lista.forEach((item) => {
+            if (item.photoUrl && item.photoUrl !== 'string') fetchImagem(item.id);
+          });
+          const clustersCalculados = criarClusters(lista, 200);
+          setClusters(clustersCalculados);
+        } catch (error) {
+          Alert.alert('Erro ao carregar mapa', error.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchData();
+    }, [statusFilter, categoriaFilter, startDate, endDate])
+  );
 
   useEffect(() => {
     if (isWebviewReady && webViewRef.current && clusters) {
@@ -165,15 +165,6 @@ const MapaScreen = ({ navigation, route }) => {
       webViewRef.current.injectJavaScript(script);
     }
   }, [clusters, isWebviewReady]);
-  
-  useEffect(() => {
-    if (filterModal) {
-        setTempStatusFilter(statusFilter);
-        setTempCategoriaFilter(categoriaFilter);
-        setTempStartDate(startDate);
-        setTempEndDate(endDate);
-    }
-  }, [filterModal]);
 
   const abrirLista = (items) => {
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
@@ -198,78 +189,49 @@ const MapaScreen = ({ navigation, route }) => {
     setTempCategoriaFilter(null);
     setTempStartDate(null);
     setTempEndDate(null);
-
     setStatusFilter(null);
     setCategoriaFilter(null);
     setStartDate(null);
     setEndDate(null);
   };
-  
+
   const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
       <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
       <style>
-        body, #map { margin: 0; padding: 0; height: 100vh; width: 100vw; background-color: #f0f4f7; }
+        body, #map { margin:0; padding:0; width:100vw; height:100vh; background-color:#f0f4f7; }
+        .custom-cluster-icon { background-color:#3a86f4; border-radius:50%; width:40px!important; height:40px!important; display:flex; justify-content:center; align-items:center; border:2px solid white; }
+        .custom-cluster-icon span { color:white; font-weight:bold; font-size:16px; font-family:sans-serif; }
       </style>
     </head>
     <body>
       <div id="map"></div>
       <script>
         const map = L.map('map').setView([-15.5369, -47.3316], 14);
-        L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png?api_key=742a8424-247b-47d7-afb6-1e523dc5777a', {
-          maxZoom: 19,
-        }).addTo(map);
-
+        L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png?api_key=742a8424-247b-47d7-afb6-1e523dc5777a', { maxZoom:19 }).addTo(map);
         let markers = [];
-        window.addMarkers = function(clusters) {
-          markers.forEach(marker => map.removeLayer(marker));
+        window.addMarkers = function(clusters){
+          markers.forEach(m => map.removeLayer(m));
           markers = [];
-
-          clusters.forEach(cluster => {
-            const latLng = [cluster.lat, cluster.lon];
+          clusters.forEach(c=>{
+            const latLng=[c.lat,c.lon];
             let marker;
-            if (cluster.count > 1) {
-              const icon = L.divIcon({
-                className: 'custom-cluster-icon',
-                html: '<div><span>' + cluster.count + '</span></div>',
-                iconSize: [40, 40]
-              });
-              marker = L.marker(latLng, { icon: icon });
-            } else {
-              marker = L.marker(latLng);
+            if(c.count>1){
+              const icon=L.divIcon({ className:'custom-cluster-icon', html:'<div><span>'+c.count+'</span></div>', iconSize:[40,40] });
+              marker=L.marker(latLng,{icon});
+            }else{
+              marker=L.marker(latLng);
             }
-            
-            marker.on('click', () => {
-              window.ReactNativeWebView.postMessage(JSON.stringify(cluster.items));
-            });
-
+            marker.on('click',()=>{ window.ReactNativeWebView.postMessage(JSON.stringify(c.items)) });
             marker.addTo(map);
             markers.push(marker);
           });
         };
       </script>
-      <style>
-        .custom-cluster-icon {
-          background-color: #3a86f4;
-          border-radius: 50%;
-          width: 40px !important;
-          height: 40px !important;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          border: 2px solid white;
-        }
-        .custom-cluster-icon span {
-          color: white;
-          font-weight: bold;
-          font-size: 16px;
-          font-family: sans-serif;
-        }
-      </style>
     </body>
     </html>
   `;
@@ -282,121 +244,162 @@ const MapaScreen = ({ navigation, route }) => {
           source={{ html: htmlContent }}
           style={styles.map}
           originWhitelist={['*']}
-          onMessage={(event) => {
-            try {
-              abrirLista(event.nativeEvent.data);
-            } catch (e) {
-              // Ignora mensagens que não são JSON
-            }
-          }}
-          onLoadEnd={() => {
-            setWebviewReady(true);
-          }}
+          onMessage={(event) => abrirLista(event.nativeEvent.data)}
+          onLoadEnd={() => setWebviewReady(true)}
         />
         {loading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#3a86f4" />
           </View>
         )}
-      </View>
 
-      <View style={[styles.fabContainer, { marginTop: Platform.OS === 'ios' ? 60 : 40 }]}>
-        <TouchableOpacity style={styles.fab} onPress={() => setFilterModal(true)}>
-          <Ionicons name="filter" size={22} color="#fff" />
-        </TouchableOpacity>
-      </View>
-      <Modal visible={filterModal} animationType="slide" transparent={true} onRequestClose={() => setFilterModal(false)}>
-         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => setFilterModal(false)}>
-           <View style={styles.filterContainer}>
-              <View style={styles.filterHeader}>
-                <Text style={styles.filterTitle}>Filtros</Text>
-                <TouchableOpacity onPress={() => setFilterModal(false)}>
-                  <Ionicons name="close-circle" size={28} color="#e74c3c" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterLabel}>Status</Text>
-                {['ABERTO', 'EM_ANDAMENTO', 'FINALIZADO'].map((s) => (
-                  <TouchableOpacity key={s} style={[styles.filterOption, tempStatusFilter === s && styles.selectedOption]} onPress={() => setTempStatusFilter(s)}>
-                    <Text style={[styles.filterOptionText, tempStatusFilter === s && styles.selectedText]}>{s}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterLabel}>Categoria</Text>
-                {['ASSALTO', 'INCÊNDIO', 'ACIDENTE'].map((c) => (
-                  <TouchableOpacity key={c} style={[styles.filterOption, tempCategoriaFilter === c && styles.selectedOption]} onPress={() => setTempCategoriaFilter(c)}>
-                    <Text style={[styles.filterOptionText, tempCategoriaFilter === c && styles.selectedText]}>{c}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterLabel}>Período</Text>
-                <DateSelector label="Data inicial" date={tempStartDate} onChange={setTempStartDate} />
-                <DateSelector label="Data final" date={tempEndDate} onChange={setTempEndDate} />
-              </View>
-              <View style={styles.actions}>
-                <TouchableOpacity style={styles.clearButton} onPress={limparFiltros}>
-                  <Text style={styles.clearText}>Limpar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
-                  <Text style={styles.applyText}>Aplicar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-         </TouchableOpacity>
-      </Modal>
-      <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{ocorrenciasSelecionadas.length > 1 ? `${ocorrenciasSelecionadas.length} Ocorrências no Local` : 'Detalhes da Ocorrência'}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close-circle" size={30} color="#e74c3c" />
-              </TouchableOpacity>
-            </View>
-            <FlatList data={ocorrenciasSelecionadas} keyExtractor={(item) => item.id.toString()} renderItem={renderItem} contentContainerStyle={{ padding: 10 }} />
-          </View>
+        {/* Botão azul superior direito */}
+        <View style={styles.fabContainer}>
+          <TouchableOpacity style={styles.fab} onPress={() => setFilterModal(true)}>
+            <Ionicons name="filter" size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
-      </Modal>
+
+        {/* Modal de filtros */}
+        <Modal
+          visible={filterModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setFilterModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.filterContainer}>
+              <ScrollView>
+                <View style={styles.filterHeader}>
+                  <Text style={styles.filterTitle}>Filtros</Text>
+                  <TouchableOpacity onPress={() => setFilterModal(false)}>
+                    <Ionicons name="close-circle" size={28} color="#e74c3c" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterLabel}>Status</Text>
+                  {['ABERTO', 'EM_ANDAMENTO', 'FINALIZADO'].map((s) => (
+                    <TouchableOpacity
+                      key={s}
+                      style={[styles.filterOption, tempStatusFilter === s && styles.selectedOption]}
+                      onPress={() => setTempStatusFilter(s)}
+                    >
+                      <Text style={[styles.filterOptionText, tempStatusFilter === s && styles.selectedText]}>{s}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterLabel}>Categoria</Text>
+                  {['ASSALTO', 'INCÊNDIO', 'ACIDENTE'].map((c) => (
+                    <TouchableOpacity
+                      key={c}
+                      style={[styles.filterOption, tempCategoriaFilter === c && styles.selectedOption]}
+                      onPress={() => setTempCategoriaFilter(c)}
+                    >
+                      <Text style={[styles.filterOptionText, tempCategoriaFilter === c && styles.selectedText]}>{c}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterLabel}>Período</Text>
+                  <DateSelector label="Data inicial" date={tempStartDate} onChange={setTempStartDate} />
+                  <DateSelector label="Data final" date={tempEndDate} onChange={setTempEndDate} />
+                </View>
+                <View style={styles.actions}>
+                  <TouchableOpacity style={styles.clearButton} onPress={limparFiltros}>
+                    <Text style={styles.clearText}>Limpar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
+                    <Text style={styles.applyText}>Aplicar</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal de ocorrências */}
+        <Modal
+          visible={modalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {ocorrenciasSelecionadas.length > 1
+                    ? `${ocorrenciasSelecionadas.length} Ocorrências no Local`
+                    : 'Detalhes da Ocorrência'}
+                </Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Ionicons name="close-circle" size={30} color="#e74c3c" />
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={ocorrenciasSelecionadas}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderItem}
+                contentContainerStyle={{ padding: 10 }}
+              />
+            </View>
+          </View>
+        </Modal>
+      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  container: {
-    flex: 1,
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
+  container: { flex: 1 },
+  map: { ...StyleSheet.absoluteFillObject },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: 'rgba(255,255,255,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fabContainer: { position: 'absolute', right: 20 },
-  fab: { backgroundColor: '#3a86f4', width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center' },
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  filterContainer: { backgroundColor: '#fff', borderTopRightRadius: 20, borderTopLeftRadius: 20, padding: 20 },
-  filterHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  fabContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 20,
+    right: 20,
+    zIndex: 10,
+  },
+  fab: {
+    backgroundColor: '#3a86f4',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  filterContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    padding: 15,
+  },
+  filterHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   filterTitle: { fontSize: 20, fontWeight: 'bold' },
-  filterGroup: { marginBottom: 15 },
-  filterLabel: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  filterOption: { padding: 10, backgroundColor: '#ecf0f1', borderRadius: 8, marginVertical: 4 },
+  filterGroup: { marginBottom: 12 },
+  filterLabel: { fontSize: 16, fontWeight: '600', marginBottom: 6 },
+  filterOption: { padding: 10, backgroundColor: '#ecf0f1', borderRadius: 8, marginVertical: 3 },
   selectedOption: { backgroundColor: '#3a86f4' },
   filterOptionText: { fontSize: 14, color: '#333' },
   selectedText: { color: '#fff', fontWeight: 'bold' },
-  dateButton: { flexDirection: 'row', alignItems: 'center', padding: 10, backgroundColor: '#ecf0f1', borderRadius: 8 },
-  dateText: { marginLeft: 8, color: '#34495e' },
+  dateButton: { flexDirection: 'row', alignItems: 'center', padding: 10, backgroundColor: '#ecf0f1', borderRadius: 8, marginVertical: 3 },
+  dateText: { marginLeft: 6, color: '#34495e' },
   actions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 },
   clearButton: { backgroundColor: '#bdc3c7', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
-  clearText: { color: '#2c3e50', fontWeight: '600' },
   applyButton: { backgroundColor: '#3a86f4', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
+  clearText: { color: '#2c3e50', fontWeight: '600' },
   applyText: { color: '#fff', fontWeight: 'bold' },
-  modalContainer: { height: '60%', backgroundColor: '#f0f4f7', borderTopRightRadius: 20, borderTopLeftRadius: 20 },
+  modalContainer: { height: '60%', backgroundColor: '#f0f4f7', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, borderBottomWidth: 1, borderColor: '#ddd', backgroundColor: '#fff' },
   modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
 });

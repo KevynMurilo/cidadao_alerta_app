@@ -30,7 +30,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
         tabBarContainer: {
             flexDirection: 'row',
             position: 'absolute',
-            bottom: 30,
+            bottom: 50,
             left: 20,
             right: 20,
             height: 70,

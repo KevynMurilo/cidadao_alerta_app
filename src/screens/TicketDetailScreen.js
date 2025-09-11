@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   StyleSheet,
   TouchableOpacity,
   FlatList,
@@ -13,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getTicketMessages, createTicketMessage } from '../api/ticketMessages';
 import { createWebSocketClient } from '../api/websocket';
 import { getTicket } from '../api/ticket';
@@ -143,7 +143,6 @@ const TicketDetailScreen = ({ route, navigation }) => {
     );
   }, [ticket, statusColor]);
 
-
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -156,8 +155,10 @@ const TicketDetailScreen = ({ route, navigation }) => {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
             <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
@@ -166,16 +167,24 @@ const TicketDetailScreen = ({ route, navigation }) => {
           <View style={styles.headerButton} />
         </View>
 
+        {/* Mensagens */}
         <FlatList
           data={messages}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderMessage}
           ListHeaderComponent={renderHeader}
-          contentContainerStyle={{ padding: 20 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 120 }} // espaço pro input
         />
 
+        {/* Input */}
         {ticket?.status !== 'FECHADO' && (
-          <View style={styles.inputContainer}>
+          <View style={[
+            styles.inputContainer,
+            {
+              paddingBottom: Platform.OS === 'android' ? 20 : 10,
+              marginBottom: Platform.OS === 'ios' ? 0 : 0,
+            }
+          ]}>
             <TextInput
               style={styles.input}
               placeholder="Digite sua mensagem..."
@@ -251,7 +260,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
-    margin: 10,
+    marginHorizontal: 10,
   },
   input: { flex: 1, fontSize: 16, padding: 8 },
   sendButton: { backgroundColor: COLORS.primary, borderRadius: 20, padding: 10, marginLeft: 8 },

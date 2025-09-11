@@ -84,7 +84,7 @@ const PerfilScreen = () => {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Meu Perfil</Text>
             </View>

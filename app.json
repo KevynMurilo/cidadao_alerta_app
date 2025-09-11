@@ -43,12 +43,12 @@
       },
       "icon": "./src/assets/logo.png",
       "permissions": [
-        "CAMERA",
-        "RECORD_AUDIO",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -56,9 +56,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "c90692be-c1fc-4897-8a02-55c8e1f56094"
+        "projectId": "3c60811d-99ec-4474-b34d-faf001171804"
       }
-    }
+    },
+    "owner": "sistemasprefeitura"
   },
   "cli": {
     "version": ">= 3.0.0",

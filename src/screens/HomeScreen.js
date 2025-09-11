@@ -2,7 +2,6 @@ import React, { useContext, useState, useCallback } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   StyleSheet,
   FlatList,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import OcorrenciaCard from '../components/OcorrenciaCard';
 import { CATEGORIES } from '../utils/categories';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
   primary: '#4A90E2',
@@ -34,6 +34,7 @@ const COLORS = {
 
 const HomeScreen = ({ navigation }) => {
   const { userInfo } = useContext(AuthContext);
+  const insets = useSafeAreaInsets(); // pega o espaço seguro
 
   const [ocorrencias, setOcorrencias] = useState([]);
   const [categorias] = useState(CATEGORIES);
@@ -101,7 +102,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingBottom: insets.bottom }]}>
       <FlatList
         data={ocorrencias}
         keyExtractor={(item) => item.id.toString()}
@@ -117,7 +118,7 @@ const HomeScreen = ({ navigation }) => {
         onRefresh={handleRefresh}
         ListHeaderComponent={
           <>
-            <View style={styles.header}>
+            <View style={[styles.header, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
               <Text style={styles.title}>Bem-vindo(a),</Text>
               <Text style={styles.userName}>{userInfo?.name || 'Cidadão'}</Text>
             </View>
@@ -197,7 +198,7 @@ const FilterButton = ({ label, value, icon, isActive, onPress }) => (
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, marginBottom: 100 },
+  container: { flex: 1, backgroundColor: COLORS.background },
   header: { paddingTop: 10, paddingBottom: 20 },
   title: { fontSize: 18, color: COLORS.textSecondary },
   userName: { fontSize: 26, fontWeight: 'bold', color: COLORS.textPrimary },
