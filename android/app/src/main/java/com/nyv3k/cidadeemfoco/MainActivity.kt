@@ -1,4 +1,4 @@
-package com.app
+package com.nyv3k.cidadeemfoco
 
 import android.os.Build
 import android.os.Bundle

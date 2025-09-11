@@ -117,7 +117,7 @@ const HomeScreen = ({ navigation }) => {
         onRefresh={handleRefresh}
         ListHeaderComponent={
           <>
-            <View style={[styles.header, {marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
+            <View style={styles.header}>
               <Text style={styles.title}>Bem-vindo(a),</Text>
               <Text style={styles.userName}>{userInfo?.name || 'Cidadão'}</Text>
             </View>

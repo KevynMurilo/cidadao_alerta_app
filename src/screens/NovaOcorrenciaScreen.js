@@ -149,7 +149,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                 style={{ flex: 1 }}
             >
                 <ScrollView contentContainerStyle={styles.content}>
-                    <View style={[styles.header, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
+                    <View style={styles.header}>
                         <Text style={styles.headerTitle}>Reportar Ocorrência</Text>
                         <Text style={styles.headerSubtitle}>Preencha os detalhes abaixo</Text>
                     </View>

@@ -61,7 +61,7 @@ const EditarPerfilScreen = () => {
     };
 
     return (
-        <SafeAreaView style={[styles.container ,{ marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
+        <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Ionicons name="arrow-back" size={28} color="#34495e" />

@@ -92,7 +92,7 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={[styles.content, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
+        <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.headerTitle}>Reportar Ocorrência (Offline)</Text>
 
           <Text style={styles.sectionTitle}>1. Selecione a Categoria</Text>
