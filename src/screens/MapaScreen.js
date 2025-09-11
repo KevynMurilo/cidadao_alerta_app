@@ -12,7 +12,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import MapView, { Marker, UrlTile } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import { getOcorrencias, getOcorrenciaFoto } from '../api/ocorrencias';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -119,8 +119,12 @@ const MapaScreen = ({ navigation, route }) => {
   const fetchImagem = async (id) => {
     try {
       const base64 = await getOcorrenciaFoto(id);
-      setImagens((prev) => ({ ...prev, [id]: base64 }));
-    } catch (error) {}
+      if (base64?.length < 500000) { // Proteção contra imagens muito grandes
+        setImagens((prev) => ({ ...prev, [id]: base64 }));
+      }
+    } catch (error) {
+      console.log('Erro ao buscar imagem', id, error);
+    }
   };
 
   useFocusEffect(
@@ -182,8 +186,10 @@ const MapaScreen = ({ navigation, route }) => {
   );
 
   const abrirLista = (items) => {
-    setOcorrenciasSelecionadas(items);
-    setModalVisible(true);
+    if (items && items.length > 0) {
+      setOcorrenciasSelecionadas(items);
+      setModalVisible(true);
+    }
   };
 
   const renderItem = ({ item }) => <OcorrenciaCard item={item} imagem={imagens[item.id]} />;
@@ -212,30 +218,18 @@ const MapaScreen = ({ navigation, route }) => {
             }
           }
         >
-          {Platform.OS === 'android' && (
-            <UrlTile
-              urlTemplate="https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}{r}.png"
-              maximumZ={19}
-              flipY={false}
-              style={{ flex: 1 }}
-            />
-          )}
-
           {clusters.map((cluster) =>
             cluster.count > 1 ? (
               <Marker
                 key={cluster.clusterId}
-                coordinate={{
-                  latitude: cluster.lat,
-                  longitude: cluster.lon,
-                }}
+                coordinate={{ latitude: cluster.lat, longitude: cluster.lon }}
                 onPress={() => abrirLista(cluster.items)}
               >
                 <View style={styles.clusterMarker}>
                   <Text style={styles.clusterText}>{cluster.count}</Text>
                 </View>
               </Marker>
-            ) : (
+            ) : cluster.items[0] ? (
               <Marker
                 key={cluster.items[0].id}
                 coordinate={{
@@ -251,7 +245,7 @@ const MapaScreen = ({ navigation, route }) => {
                 }
                 onPress={() => abrirLista(cluster.items)}
               />
-            )
+            ) : null
           )}
         </MapView>
       )}
@@ -283,7 +277,6 @@ const MapaScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
 
-            {/* Status */}
             <View style={styles.filterGroup}>
               <Text style={styles.filterLabel}>Status</Text>
               {['ABERTO', 'EM_ANDAMENTO', 'FINALIZADO'].map((s) => (
@@ -299,7 +292,6 @@ const MapaScreen = ({ navigation, route }) => {
               ))}
             </View>
 
-            {/* Categoria */}
             <View style={styles.filterGroup}>
               <Text style={styles.filterLabel}>Categoria</Text>
               {['ASSALTO', 'INCÊNDIO', 'ACIDENTE'].map((c) => (
@@ -315,14 +307,12 @@ const MapaScreen = ({ navigation, route }) => {
               ))}
             </View>
 
-            {/* Datas */}
             <View style={styles.filterGroup}>
               <Text style={styles.filterLabel}>Período</Text>
               <DateSelector label="Data inicial" date={startDate} onChange={setStartDate} />
               <DateSelector label="Data final" date={endDate} onChange={setEndDate} />
             </View>
 
-            {/* Ações */}
             <View style={styles.actions}>
               <TouchableOpacity style={styles.clearButton} onPress={limparFiltros}>
                 <Text style={styles.clearText}>Limpar</Text>

@@ -16,7 +16,7 @@ export const createWebSocketClient = async (ticketId, onMessageReceived) => {
 
   client.onConnect = () => {
     console.log('WebSocket conectado');
-    client.subscribe(`/topic/ticket/${ticketId}`, (message) => {
+    client.subscribe(`/topic/tickets/${ticketId}`, (message) => {
       const newMsg = JSON.parse(message.body);
       if (onMessageReceived) onMessageReceived(newMsg);
     });

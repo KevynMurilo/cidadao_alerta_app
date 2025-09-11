@@ -127,7 +127,7 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
         ? () => sendOfflineOcorrencia(item)
         : () => handleCardPress(item)
       }
-      texto="Enviar"
+      texto={activeTab === 'offline' ? "Enviar" : "Ver Detalhes"}
     />
   );
 

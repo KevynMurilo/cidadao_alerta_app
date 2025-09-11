@@ -15,6 +15,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getMyTickets } from '../api/ticket';
+import { getUnreadMessageCounts } from '../api/ticketMessages';
 
 const COLORS = {
   primary: '#3a86f4',
@@ -29,43 +30,10 @@ const COLORS = {
 
 const MAX_CHAR = 80;
 
-const TicketItem = ({ item, onPress }) => {
-  const timeAgo = formatDistanceToNow(parseISO(item.createdAt), {
-    addSuffix: true,
-    locale: ptBR,
-  });
-
-  const statusColor =
-    item.status === 'ABERTO'
-      ? COLORS.aberto
-      : item.status === 'EM_ANDAMENTO'
-        ? COLORS.emAndamento
-        : COLORS.fechado;
-
-  return (
-    <View style={styles.itemContainer}>
-      <View style={[styles.statusBadge, { backgroundColor: statusColor }]} />
-      <View style={styles.textContainer}>
-        <Text style={styles.itemTitle}>{item.subject}</Text>
-        <Text style={styles.itemDescription}>
-          {item.description.length > MAX_CHAR
-            ? item.description.substring(0, MAX_CHAR) + '...'
-            : item.description}
-        </Text>
-        <View style={styles.footerRow}>
-          <Text style={styles.itemTimestamp}>{timeAgo}</Text>
-          <TouchableOpacity onPress={() => onPress(item)}>
-            <Text style={styles.detailButton}>Ver Detalhes</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
-};
-
 const TicketScreen = () => {
   const navigation = useNavigation();
   const [tickets, setTickets] = useState([]);
+  const [unreadCounts, setUnreadCounts] = useState({});
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -93,7 +61,11 @@ const TicketScreen = () => {
           setTotalPages(newTotalPages);
           setPage(pageToFetch + 1);
         }
+
+        const unreadResponse = await getUnreadMessageCounts();
+        setUnreadCounts(unreadResponse.data.data);
       } catch (error) {
+        console.log(error)
         Alert.alert('Erro', 'Não foi possível carregar os tickets.');
       } finally {
         setLoading(false);
@@ -129,16 +101,67 @@ const TicketScreen = () => {
     navigation.navigate('TicketDetail', { ticketId: ticket.id });
   };
 
+  const TicketItem = ({ item, onPress }) => {
+    const timeAgo = formatDistanceToNow(parseISO(item.createdAt), {
+      addSuffix: true,
+      locale: ptBR,
+    });
+
+    const statusColor =
+      item.status === 'ABERTO'
+        ? COLORS.aberto
+        : item.status === 'EM_ANDAMENTO'
+        ? COLORS.emAndamento
+        : COLORS.fechado;
+
+    const unreadCount = unreadCounts[item.id] || 0;
+
+    return (
+      <View style={styles.itemContainer}>
+        <View style={[styles.statusBadge, { backgroundColor: statusColor }]} />
+        <View style={styles.textContainer}>
+          <Text style={styles.itemTitle}>
+            {item.subject}{' '}
+            {unreadCount > 0 && (
+              <View style={styles.unreadBadgeContainer}>
+                <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
+              </View>
+            )}
+          </Text>
+          <Text style={styles.itemDescription}>
+            {item.description.length > MAX_CHAR
+              ? item.description.substring(0, MAX_CHAR) + '...'
+              : item.description}
+          </Text>
+          <View style={styles.footerRow}>
+            <Text style={styles.itemTimestamp}>{timeAgo}</Text>
+            <TouchableOpacity onPress={() => onPress(item)}>
+              <Text style={styles.detailButton}>Ver Detalhes</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   const renderFooter = () =>
     loadingMore ? (
-      <ActivityIndicator style={{ marginVertical: 20 }} size="small" color={COLORS.primary} />
+      <ActivityIndicator
+        style={{ marginVertical: 20 }}
+        size="small"
+        color={COLORS.primary}
+      />
     ) : null;
 
   const renderEmptyComponent = () => {
     if (loading) return null;
     return (
       <View style={styles.emptyContainer}>
-        <MaterialCommunityIcons name="ticket-confirmation-outline" size={60} color="#CBD5E0" />
+        <MaterialCommunityIcons
+          name="ticket-confirmation-outline"
+          size={60}
+          color="#CBD5E0"
+        />
         <Text style={styles.emptyTitle}>Nenhum Ticket</Text>
         <Text style={styles.emptySubtitle}>
           Você ainda não possui tickets de suporte.
@@ -156,7 +179,9 @@ const TicketScreen = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
+    <SafeAreaView
+      style={[styles.container, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}
+    >
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -175,7 +200,9 @@ const TicketScreen = () => {
       <FlatList
         data={tickets}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <TicketItem item={item} onPress={handlePressDetail} />}
+        renderItem={({ item }) => (
+          <TicketItem item={item} onPress={handlePressDetail} />
+        )}
         contentContainerStyle={styles.listContainer}
         onRefresh={handleRefresh}
         refreshing={refreshing}
@@ -244,6 +271,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.textPrimary,
     marginBottom: 4,
+  },
+  unreadBadgeContainer: {
+    backgroundColor: COLORS.aberto,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 6,
+    minWidth: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  unreadBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   itemDescription: {
     fontSize: 14,

@@ -1,9 +1,20 @@
 {
   "expo": {
-    "name": "cidade-em-foco",
-    "slug": "Cidade em Foco",
+    "name": "Cidade em Foco",
+    "slug": "cidade-em-foco",
     "version": "1.0.0",
+    "orientation": "portrait",
     "icon": "./src/assets/logo.png",
+    "scheme": "cidadeemfoco",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./src/assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "plugins": [
       [
         "expo-image-picker",
@@ -12,24 +23,69 @@
           "cameraPermission": "A app necessita de acesso à sua câmera para que possa tirar fotos para as ocorrências."
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-font"
     ],
     "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nyv3k.cidadeemfoco",
       "infoPlist": {
         "NSCameraUsageDescription": "A app necessita de acesso à sua câmera para tirar fotos.",
-        "NSPhotoLibraryUsageDescription": "A app necessita de acesso à galeria para selecionar fotos."
+        "NSPhotoLibraryUsageDescription": "A app necessita de acesso à galeria para selecionar fotos.",
+        "NSLocationWhenInUseUsageDescription": "A app necessita da sua localização para exibir ocorrências próximas."
       }
     },
     "android": {
+      "package": "com.nyv3k.cidadeemfoco",
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/logo.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#ffffff"
       },
+      "icon": "./src/assets/logo.png",
       "permissions": [
         "CAMERA",
+        "RECORD_AUDIO",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ]
+    },
+    "web": {
+      "favicon": "./src/assets/logo.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c90692be-c1fc-4897-8a02-55c8e1f56094"
+      }
     }
+  },
+  "cli": {
+    "version": ">= 3.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
   }
 }

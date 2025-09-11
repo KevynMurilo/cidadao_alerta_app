@@ -1,8 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL = 'http://10.1.59.59:8080/api';
-export const API_BASE_URL_WS = 'http://10.1.59.59:8080/ws';
+export const API_BASE_URL = 'https://back-cef.formosa.go.gov.br/api';
+export const API_BASE_URL_WS = 'https://back-cef.formosa.go.gov.br/ws';
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
