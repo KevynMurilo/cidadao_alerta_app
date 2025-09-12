@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   fabContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 20,
+    top: 10,
     right: 20,
     zIndex: 10,
   },

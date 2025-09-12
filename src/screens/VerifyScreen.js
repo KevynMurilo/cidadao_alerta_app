@@ -3,7 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     TouchableOpacity,
     ActivityIndicator,
     Alert,
@@ -11,12 +10,15 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import CustomButton from '../components/CustomButton';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 const VerifyScreen = ({ route }) => {
     const { email } = route.params;
+    const navigation = useNavigation();
     const [code, setCode] = useState('');
     const [resendCooldown, setResendCooldown] = useState(30);
     const [isResending, setIsResending] = useState(false);
@@ -48,7 +50,7 @@ const VerifyScreen = ({ route }) => {
         try {
             await resendCode(email);
             Alert.alert('Sucesso', 'Um novo código de verificação foi enviado para o seu e-mail.');
-            setResendCooldown(60); 
+            setResendCooldown(60);
         } catch (e) {
             Alert.alert('Erro', e.message);
         } finally {
@@ -59,62 +61,78 @@ const VerifyScreen = ({ route }) => {
     const isBusy = isLoading || isResending;
 
     return (
-        <SafeAreaView style={styles.container}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.keyboardAvoidingContainer}
-            >
-                <View style={styles.content}>
-                    <View style={styles.header}>
-                        <MaterialCommunityIcons name="email-check-outline" size={60} color="#3a86f4" />
-                        <Text style={styles.title}>Verifique o seu E-mail</Text>
-                        <Text style={styles.subtitle}>
-                            Enviámos um código de 6 dígitos para <Text style={styles.emailText}>{email}</Text>.
-                        </Text>
-                    </View>
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.container}>
+                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={28} color="#34495e" />
+                </TouchableOpacity>
 
-                    <View style={styles.inputContainer}>
-                        <MaterialCommunityIcons name="numeric-6-box-outline" size={24} color="#999" style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Código de Verificação"
-                            placeholderTextColor="#a9a9a9"
-                            value={code}
-                            onChangeText={setCode}
-                            keyboardType="numeric"
-                            maxLength={6}
-                            editable={!isBusy} 
-                        />
-                    </View>
-
-                    <CustomButton 
-                        title="Verificar e Entrar" 
-                        onPress={handleVerify} 
-                        disabled={isBusy} 
-                    />
-
-                    {isLoading && (
-                        <ActivityIndicator size="large" color="#3a86f4" style={{ marginTop: 20 }} />
-                    )}
-
-                    <View style={styles.footer}>
-                        <Text style={styles.footerText}>Não recebeu o código?</Text>
-                        <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0 || isBusy}>
-                            <Text style={[styles.linkText, (resendCooldown > 0 || isBusy) && styles.linkDisabled]}>
-                                {isResending ? 'A enviar...' : resendCooldown > 0 ? `Aguarde ${resendCooldown}s` : 'Reenviar Código'}
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={styles.keyboardAvoidingContainer}
+                >
+                    <View style={styles.content}>
+                        <View style={styles.header}>
+                            <MaterialCommunityIcons name="email-check-outline" size={60} color="#3a86f4" />
+                            <Text style={styles.title}>Verifique o seu E-mail</Text>
+                            <Text style={styles.subtitle}>
+                                Enviamos um código de 6 dígitos para <Text style={styles.emailText}>{email}</Text>.
                             </Text>
-                        </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <MaterialCommunityIcons name="numeric-6-box-outline" size={24} color="#999" style={styles.inputIcon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Código de Verificação"
+                                placeholderTextColor="#a9a9a9"
+                                value={code}
+                                onChangeText={setCode}
+                                keyboardType="numeric"
+                                maxLength={6}
+                                editable={!isBusy}
+                            />
+                        </View>
+
+                        <CustomButton
+                            title="Verificar e Entrar"
+                            onPress={handleVerify}
+                            disabled={isBusy}
+                        />
+
+                        {isLoading && (
+                            <ActivityIndicator size="large" color="#3a86f4" style={{ marginTop: 20 }} />
+                        )}
+
+                        <View style={styles.footer}>
+                            <Text style={styles.footerText}>Não recebeu o código?</Text>
+                            <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0 || isBusy}>
+                                <Text style={[styles.linkText, (resendCooldown > 0 || isBusy) && styles.linkDisabled]}>
+                                    {isResending ? 'A enviar...' : resendCooldown > 0 ? `Aguarde ${resendCooldown}s` : 'Reenviar Código'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
-            </KeyboardAvoidingView>
+                </KeyboardAvoidingView>
+            </View>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    safeArea: {
         flex: 1,
         backgroundColor: '#f0f4f7',
+    },
+    container: {
+        flex: 1,
+    },
+    backButton: {
+        position: 'absolute',
+        top: 15,
+        left: 15,
+        zIndex: 10,
+        padding: 5,
     },
     keyboardAvoidingContainer: {
         flex: 1,

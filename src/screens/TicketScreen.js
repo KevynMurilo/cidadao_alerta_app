@@ -2,14 +2,13 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   StyleSheet,
   FlatList,
   ActivityIndicator,
   Alert,
   TouchableOpacity,
-  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { formatDistanceToNow, parseISO } from 'date-fns';
@@ -172,56 +171,63 @@ const TicketScreen = () => {
 
   if (loading && tickets.length === 0) {
     return (
-      <SafeAreaView style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <SafeAreaView style={styles.safeArea}>
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}
-    >
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.headerButton}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ajuda e Suporte</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('CriarTicket')}
-          style={styles.headerButton}
-        >
-          <Ionicons name="add-circle-outline" size={28} color={COLORS.primary} />
-        </TouchableOpacity>
-      </View>
-      <FlatList
-        data={tickets}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <TicketItem item={item} onPress={handlePressDetail} />
-        )}
-        contentContainerStyle={styles.listContainer}
-        onRefresh={handleRefresh}
-        refreshing={refreshing}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={renderEmptyComponent}
-      />
+    <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity
+                    onPress={() => navigation.goBack()}
+                    style={styles.headerButton}
+                >
+                    <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Ajuda e Suporte</Text>
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('CriarTicket')}
+                    style={styles.headerButton}
+                >
+                    <Ionicons name="add-circle-outline" size={28} color={COLORS.primary} />
+                </TouchableOpacity>
+            </View>
+            <FlatList
+                data={tickets}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                    <TicketItem item={item} onPress={handlePressDetail} />
+                )}
+                contentContainerStyle={styles.listContainer}
+                onRefresh={handleRefresh}
+                refreshing={refreshing}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={renderFooter}
+                ListEmptyComponent={renderEmptyComponent}
+            />
+        </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  container: {
+    flex: 1,
+  },
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',

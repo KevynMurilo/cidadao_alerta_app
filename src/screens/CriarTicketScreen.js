@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
     View,
     Text,
-    SafeAreaView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
@@ -12,6 +11,7 @@ import {
     Platform,
     ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { createTicket } from '../api/ticket';
@@ -55,83 +55,91 @@ const CriarTicketScreen = () => {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
-                    <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Novo Ticket</Text>
-                <View style={styles.headerButton} />
-            </View>
-
-            <KeyboardAvoidingView
-                style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            >
-                <ScrollView contentContainerStyle={styles.form}>
-                    <Text style={styles.label}>Título</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Digite um título"
-                        placeholderTextColor="#a9a9a9"
-                        value={title}
-                        onChangeText={setTitle}
-                    />
-
-                    <Text style={styles.label}>Descrição</Text>
-                    <TextInput
-                        style={[styles.input, styles.textArea]}
-                        placeholder="Descreva seu problema..."
-                        placeholderTextColor="#a9a9a9"
-                        value={description}
-                        onChangeText={setDescription}
-                        multiline
-                        numberOfLines={6}
-                    />
-
-                    <Text style={styles.label}>Prioridade</Text>
-                    <View style={styles.priorityContainer}>
-                        {['BAIXA', 'MEDIA', 'ALTA'].map((p) => (
-                            <TouchableOpacity
-                                key={p}
-                                style={[
-                                    styles.priorityButton,
-                                    selectedPriority === p && styles.priorityButtonSelected,
-                                ]}
-                                onPress={() => setSelectedPriority(p)}
-                            >
-                                <Text
-                                    style={[
-                                        styles.priorityText,
-                                        selectedPriority === p && styles.priorityTextSelected,
-                                    ]}
-                                >
-                                    {p}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    <TouchableOpacity
-                        style={[styles.button, loading && { opacity: 0.7 }]}
-                        onPress={handleCreateTicket}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.buttonText}>Enviar Ticket</Text>
-                        )}
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.container}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
+                        <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
                     </TouchableOpacity>
-                </ScrollView>
-            </KeyboardAvoidingView>
+                    <Text style={styles.headerTitle}>Novo Ticket</Text>
+                    <View style={styles.headerButton} />
+                </View>
+
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
+                    <ScrollView contentContainerStyle={styles.form}>
+                        <Text style={styles.label}>Título</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Digite um título"
+                            placeholderTextColor="#a9a9a9"
+                            value={title}
+                            onChangeText={setTitle}
+                        />
+
+                        <Text style={styles.label}>Descrição</Text>
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            placeholder="Descreva seu problema..."
+                            placeholderTextColor="#a9a9a9"
+                            value={description}
+                            onChangeText={setDescription}
+                            multiline
+                            numberOfLines={6}
+                        />
+
+                        <Text style={styles.label}>Prioridade</Text>
+                        <View style={styles.priorityContainer}>
+                            {['BAIXA', 'MEDIA', 'ALTA'].map((p) => (
+                                <TouchableOpacity
+                                    key={p}
+                                    style={[
+                                        styles.priorityButton,
+                                        selectedPriority === p && styles.priorityButtonSelected,
+                                    ]}
+                                    onPress={() => setSelectedPriority(p)}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.priorityText,
+                                            selectedPriority === p && styles.priorityTextSelected,
+                                        ]}
+                                    >
+                                        {p}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <TouchableOpacity
+                            style={[styles.button, loading && { opacity: 0.7 }]}
+                            onPress={handleCreateTicket}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.buttonText}>Enviar Ticket</Text>
+                            )}
+                        </TouchableOpacity>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </View>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
+    safeArea: {
+        flex: 1,
+        backgroundColor: COLORS.background,
+    },
+    container: {
+        flex: 1,
+    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -155,6 +163,7 @@ const styles = StyleSheet.create({
     },
     form: {
         padding: 20,
+        flexGrow: 1,
     },
     label: {
         fontSize: 16,

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import {
-  View, Text, StyleSheet, SafeAreaView, Alert, ScrollView,
+  View, Text, StyleSheet, Alert, ScrollView,
   TouchableOpacity, Image, TextInput, ActivityIndicator,
   KeyboardAvoidingView, Platform
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -55,6 +56,13 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
     }
   };
 
+  // ✅ FUNÇÃO DE LIMPEZA
+  const resetForm = () => {
+    setDescription("");
+    setPhoto(null);
+    setSelectedCategory(CATEGORIES[0]);
+  };
+
   const handleSubmit = async () => {
     if (!description || !photo || !location) {
       Alert.alert(
@@ -77,6 +85,10 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
 
       await insertOcorrenciaLocal(ocorrencia);
       Alert.alert("Sucesso!", "Ocorrência salva offline!");
+      
+      // ✅ CHAMANDO A FUNÇÃO DE LIMPEZA
+      resetForm();
+
       navigation.goBack();
     } catch (e) {
       Alert.alert("Erro", "Falha ao salvar ocorrência offline.");
@@ -86,92 +98,115 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
     }
   };
 
+  // O restante do seu código (JSX e estilos) permanece o mesmo...
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={[styles.content, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
-          <Text style={styles.headerTitle}>Reportar Ocorrência (Offline)</Text>
+    <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+            >
+                <ScrollView contentContainerStyle={styles.content}>
+                    <Text style={styles.headerTitle}>Reportar Ocorrência (Offline)</Text>
+                    {/* ... Seu JSX ... */}
+                    <Text style={styles.sectionTitle}>1. Selecione a Categoria</Text>
+                    <View style={styles.categoryGrid}>
+                        {CATEGORIES.map((cat, index) => {
+                            const isSelected = selectedCategory?.id === cat.id;
+                            const color = index % 2 === 0 ? COLORS.primary : COLORS.secondary;
+                            return (
+                                <TouchableOpacity
+                                    key={cat.id}
+                                    style={[styles.categoryItem, { borderColor: isSelected ? color : COLORS.inactive }]}
+                                    onPress={() => setSelectedCategory(cat)}
+                                >
+                                    <View style={[styles.iconContainer, { backgroundColor: isSelected ? color : 'transparent' }]}>
+                                        <MaterialCommunityIcons
+                                            name={cat.icon}
+                                            size={32}
+                                            color={isSelected ? COLORS.white : color}
+                                        />
+                                    </View>
+                                    <Text
+                                        style={[styles.categoryText, { color: isSelected ? color : COLORS.textPrimary }]}
+                                        numberOfLines={2}
+                                    >
+                                        {cat.name}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
 
-          <Text style={styles.sectionTitle}>1. Selecione a Categoria</Text>
-          <View style={styles.categoryGrid}>
-            {CATEGORIES.map((cat, index) => {
-              const isSelected = selectedCategory?.id === cat.id;
-              const color = index % 2 === 0 ? COLORS.primary : COLORS.secondary;
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[styles.categoryItem, { borderColor: isSelected ? color : COLORS.inactive }]}
-                  onPress={() => setSelectedCategory(cat)}
-                >
-                  <View style={[styles.iconContainer, { backgroundColor: isSelected ? color : 'transparent' }]}>
-                    <MaterialCommunityIcons
-                      name={cat.icon}
-                      size={32}
-                      color={isSelected ? COLORS.white : color}
+                    <Text style={styles.sectionTitle}>2. Descreva o Problema</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Descreva o problema..."
+                        value={description}
+                        placeholderTextColor="#a9a9a9"
+                        onChangeText={setDescription}
+                        multiline
                     />
-                  </View>
-                  <Text
-                    style={[styles.categoryText, { color: isSelected ? color : COLORS.textPrimary }]}
-                    numberOfLines={2}
-                  >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
 
-          <Text style={styles.sectionTitle}>2. Descreva o Problema</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Descreva o problema..."
-            value={description}
-            placeholderTextColor="#a9a9a9"
-            onChangeText={setDescription}
-            multiline
-          />
+                    <Text style={styles.sectionTitle}>3. Adicione uma Evidência</Text>
+                    <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+                        {photo ? (
+                            <Image source={{ uri: photo.uri }} style={styles.imagePreview} />
+                        ) : (
+                            <View style={styles.imagePlaceholder}>
+                                <Ionicons name="camera" size={40} color={COLORS.primary} />
+                                <Text style={styles.imageText}>Tirar Foto</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
 
-          <Text style={styles.sectionTitle}>3. Adicione uma Evidência</Text>
-          <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-            {photo ? (
-              <Image source={{ uri: photo.uri }} style={styles.imagePreview} />
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <Ionicons name="camera" size={40} color={COLORS.primary} />
-                <Text style={styles.imageText}>Tirar Foto</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+                    {location ? (
+                        <Text style={styles.location}>
+                            Localização capturada: {location.coords.latitude.toFixed(5)}, {location.coords.longitude.toFixed(5)}
+                        </Text>
+                    ) : (
+                        <Text style={styles.location}>Obtendo localização...</Text>
+                    )}
 
-          {location ? (
-            <Text style={styles.location}>
-              Localização capturada: {location.coords.latitude.toFixed(5)}, {location.coords.longitude.toFixed(5)}
-            </Text>
-          ) : (
-            <Text style={styles.location}>Obtendo localização...</Text>
-          )}
-
-          <View style={styles.buttonContainer}>
-            {loading ? (
-              <ActivityIndicator size="large" color={COLORS.primary} />
-            ) : (
-              <CustomButton title="Salvar Offline" onPress={handleSubmit} />
-            )}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+                    <View style={styles.buttonContainer}>
+                        {loading ? (
+                            <ActivityIndicator size="large" color={COLORS.primary} />
+                        ) : (
+                            <CustomButton title="Salvar Offline" onPress={handleSubmit} />
+                        )}
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  content: { padding: 20 },
-  headerTitle: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: "600", marginBottom: 10, color: COLORS.textPrimary },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: 20,
+    paddingTop: 30,
+    flexGrow: 1,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: COLORS.textPrimary,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 10,
+    color: COLORS.textPrimary,
+  },
   input: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
@@ -180,6 +215,8 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: "top",
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: COLORS.inactive,
   },
   imagePicker: {
     backgroundColor: COLORS.card,
@@ -193,31 +230,59 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 20,
   },
-  imagePreview: { width: "100%", height: "100%" },
-  imagePlaceholder: { alignItems: "center" },
-  imageText: { color: COLORS.primary, fontSize: 16, marginTop: 10, fontWeight: "bold" },
-  location: { fontSize: 14, marginTop: 10, color: COLORS.textSecondary },
-  buttonContainer: { marginTop: 20 },
+  imagePreview: {
+    width: "100%",
+    height: "100%"
+  },
+  imagePlaceholder: {
+    alignItems: "center"
+  },
+  imageText: {
+    color: COLORS.primary,
+    fontSize: 16,
+    marginTop: 10,
+    fontWeight: "bold"
+  },
+  location: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  buttonContainer: {
+    marginTop: 20,
+  },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between'
+    justifyContent: 'flex-start',
+    marginBottom: 10,
   },
   categoryItem: {
-    flexGrow: 1,
-    flexBasis: '30%',
-    height: 100,
+    width: '30%',
+    aspectRatio: 1,
     backgroundColor: COLORS.card,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 8,
-    marginBottom: 10,
-    marginRight: 10,
+    marginBottom: 12,
+    marginRight: '5%',
     borderWidth: 2
   },
-  iconContainer: { width: 50, height: 50, borderRadius: 25, justifyContent: "center", alignItems: "center", marginBottom: 8 },
-  categoryText: { textAlign: "center", fontSize: 12, fontWeight: "500" },
+  iconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8
+  },
+  categoryText: {
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "500"
+  },
 });
 
 export default NovaOcorrenciaOfflineScreen;

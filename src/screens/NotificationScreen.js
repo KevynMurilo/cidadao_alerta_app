@@ -3,13 +3,12 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     FlatList,
     ActivityIndicator,
     TouchableOpacity,
     Alert,
-    Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow, parseISO } from 'date-fns';
@@ -110,10 +109,12 @@ const NotificationScreen = () => {
 
     const handleNotificationPress = async (item, index) => {
         try {
-            await markAsRead(item.id);
-            const newNotifications = [...notifications];
-            newNotifications[index].read = true;
-            setNotifications(newNotifications);
+            if (!item.read) {
+                await markAsRead(item.id);
+                const newNotifications = [...notifications];
+                newNotifications[index].read = true;
+                setNotifications(newNotifications);
+            }
 
             const type = (item.type || 'OUTRO').toUpperCase();
             const relatedId = item.relatedEntityId;
@@ -158,62 +159,153 @@ const NotificationScreen = () => {
 
     if (loading && notifications.length === 0) {
         return (
-            <SafeAreaView style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#3a86f4" />
+            <SafeAreaView style={styles.safeArea}>
+                <View style={styles.loaderContainer}>
+                    <ActivityIndicator size="large" color="#3a86f4" />
+                </View>
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={[styles.container, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
-                    <Ionicons name="arrow-back" size={24} color="#34495e" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Notificações</Text>
-                <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.headerButton}>
-                    <Ionicons name="checkmark-done-outline" size={24} color="#3a86f4" />
-                </TouchableOpacity>
-            </View>
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
+                        <Ionicons name="arrow-back" size={24} color="#34495e" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Notificações</Text>
+                    <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.headerButton}>
+                        <Ionicons name="checkmark-done-outline" size={24} color="#3a86f4" />
+                    </TouchableOpacity>
+                </View>
 
-            <FlatList
-                data={notifications}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item, index }) => (
-                    <NotificationItem
-                        item={item}
-                        onPress={() => handleNotificationPress(item, index)}
-                    />
-                )}
-                contentContainerStyle={styles.listContainer}
-                onRefresh={handleRefresh}
-                refreshing={refreshing}
-                onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.5}
-                ListFooterComponent={renderFooter}
-                ListEmptyComponent={renderEmptyComponent}
-            />
+                <FlatList
+                    data={notifications}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={({ item, index }) => (
+                        <NotificationItem
+                            item={item}
+                            onPress={() => handleNotificationPress(item, index)}
+                        />
+                    )}
+                    contentContainerStyle={styles.listContainer}
+                    onRefresh={handleRefresh}
+                    refreshing={refreshing}
+                    onEndReached={handleLoadMore}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={renderFooter}
+                    ListEmptyComponent={renderEmptyComponent}
+                />
+            </View>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f0f4f7' },
-    loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f4f7' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15, paddingHorizontal: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' },
-    headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#34495e' },
-    headerButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-    listContainer: { paddingVertical: 8, flexGrow: 1 },
-    itemContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 15, marginHorizontal: 12, marginVertical: 6, borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 3 },
-    itemUnread: { backgroundColor: '#eaf2ff', borderLeftWidth: 4, borderLeftColor: '#3a86f4' },
-    unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#3a86f4', position: 'absolute', top: 12, left: -4 },
-    iconContainer: { marginRight: 15 },
-    textContainer: { flex: 1 },
-    itemMessage: { fontSize: 15, color: '#34495e', fontWeight: '500', lineHeight: 22 },
-    itemTimestamp: { fontSize: 13, color: '#7f8c8d', marginTop: 4 },
-    emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, marginTop: '30%' },
-    emptyTitle: { fontSize: 20, fontWeight: 'bold', color: '#34495e', marginTop: 20 },
-    emptySubtitle: { fontSize: 16, color: '#7f8c8d', textAlign: 'center', marginTop: 8 },
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#f0f4f7',
+    },
+    container: {
+        flex: 1,
+    },
+    loaderContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 15,
+        paddingHorizontal: 10,
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderColor: '#eee'
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#34495e'
+    },
+    headerButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    listContainer: {
+        paddingVertical: 8,
+        flexGrow: 1
+    },
+    itemContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        padding: 15,
+        marginHorizontal: 12,
+        marginVertical: 6,
+        borderRadius: 12,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 1
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 3
+    },
+    itemUnread: {
+        backgroundColor: '#eaf2ff',
+        borderLeftWidth: 4,
+        borderLeftColor: '#3a86f4'
+    },
+    unreadDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#3a86f4',
+        position: 'absolute',
+        top: 12,
+        left: -4
+    },
+    iconContainer: {
+        marginRight: 15
+    },
+    textContainer: {
+        flex: 1
+    },
+    itemMessage: {
+        fontSize: 15,
+        color: '#34495e',
+        fontWeight: '500',
+        lineHeight: 22
+    },
+    itemTimestamp: {
+        fontSize: 13,
+        color: '#7f8c8d',
+        marginTop: 4
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 40,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#34495e',
+        marginTop: 20
+    },
+    emptySubtitle: {
+        fontSize: 16,
+        color: '#7f8c8d',
+        textAlign: 'center',
+        marginTop: 8
+    },
 });
 
 export default NotificationScreen;

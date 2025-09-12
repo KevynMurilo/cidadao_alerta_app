@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
-    View, Text, StyleSheet, SafeAreaView, TextInput,
+    View, Text, StyleSheet, TextInput,
     TouchableOpacity, ScrollView, Alert, ActivityIndicator,
     KeyboardAvoidingView, Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { updateUser } from '../api/user';
@@ -61,101 +62,108 @@ const EditarPerfilScreen = () => {
     };
 
     return (
-        <SafeAreaView style={[styles.container ,{ marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={28} color="#34495e" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Editar Perfil</Text>
-            </View>
-
-            <KeyboardAvoidingView
-                style={{ flex: 1 }}
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-            >
-                <ScrollView contentContainerStyle={styles.content}>
-                    <View style={styles.formCard}>
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Nome Completo</Text>
-                            <View style={styles.inputContainer}>
-                                <Ionicons name="person-outline" size={22} color="#999" style={styles.icon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={name}
-                                    onChangeText={setName}
-                                    placeholder="Digite seu nome completo"
-                                    placeholderTextColor="#a9a9a9"
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Email (não editável)</Text>
-                            <View style={[styles.inputContainer, styles.inputDisabled]}>
-                                <Ionicons name="mail-outline" size={22} color="#999" style={styles.icon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={user.email}
-                                    editable={false}
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Nova Senha (opcional)</Text>
-                            <View style={styles.inputContainer}>
-                                <Ionicons name="lock-closed-outline" size={22} color="#999" style={styles.icon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    placeholder="Deixe em branco para não alterar"
-                                    placeholderTextColor="#a9a9a9"
-                                    secureTextEntry={!isPasswordVisible}
-                                />
-                                <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
-                                    <Ionicons name={isPasswordVisible ? "eye-off-outline" : "eye-outline"} size={24} color="#7f8c8d" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Confirmar Nova Senha</Text>
-                            <View style={styles.inputContainer}>
-                                <Ionicons name="lock-closed-outline" size={22} color="#999" style={styles.icon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
-                                    placeholder="Repita a nova senha"
-                                    placeholderTextColor="#a9a9a9"
-                                    secureTextEntry={!isPasswordVisible}
-                                />
-                            </View>
-                        </View>
-                    </View>
-
-                    <TouchableOpacity style={styles.saveButton} onPress={handleUpdate} disabled={loading}>
-                        {loading ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                            <Text style={styles.saveButtonText}>Salvar Alterações</Text>
-                        )}
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
+                        <Ionicons name="arrow-back" size={28} color="#34495e" />
                     </TouchableOpacity>
-                </ScrollView>
-            </KeyboardAvoidingView>
+                    <Text style={styles.headerTitle}>Editar Perfil</Text>
+                    <View style={styles.headerButton} /> 
+                </View>
+
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                >
+                    <ScrollView contentContainerStyle={styles.content}>
+                        <View style={styles.formCard}>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Nome Completo</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="person-outline" size={22} color="#999" style={styles.icon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        value={name}
+                                        onChangeText={setName}
+                                        placeholder="Digite seu nome completo"
+                                        placeholderTextColor="#a9a9a9"
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Email (não editável)</Text>
+                                <View style={[styles.inputContainer, styles.inputDisabled]}>
+                                    <Ionicons name="mail-outline" size={22} color="#999" style={styles.icon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        value={user.email}
+                                        editable={false}
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Nova Senha (opcional)</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="lock-closed-outline" size={22} color="#999" style={styles.icon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        placeholder="Deixe em branco para não alterar"
+                                        placeholderTextColor="#a9a9a9"
+                                        secureTextEntry={!isPasswordVisible}
+                                    />
+                                    <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+                                        <Ionicons name={isPasswordVisible ? "eye-off-outline" : "eye-outline"} size={24} color="#7f8c8d" />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Confirmar Nova Senha</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="lock-closed-outline" size={22} color="#999" style={styles.icon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        value={confirmPassword}
+                                        onChangeText={setConfirmPassword}
+                                        placeholder="Repita a nova senha"
+                                        placeholderTextColor="#a9a9a9"
+                                        secureTextEntry={!isPasswordVisible}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+
+                        <TouchableOpacity style={styles.saveButton} onPress={handleUpdate} disabled={loading}>
+                            {loading ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Text style={styles.saveButtonText}>Salvar Alterações</Text>
+                            )}
+                        </TouchableOpacity>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </View>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    safeArea: {
         flex: 1,
         backgroundColor: '#f0f4f7',
+    },
+    container: {
+        flex: 1,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         paddingVertical: 15,
         paddingHorizontal: 15,
         backgroundColor: '#fff',
@@ -165,11 +173,14 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        marginLeft: 15,
         color: '#34495e',
+    },
+    headerButton: {
+        width: 28, 
     },
     content: {
         padding: 20,
+        flexGrow: 1,
     },
     formCard: {
         backgroundColor: '#fff',

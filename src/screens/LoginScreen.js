@@ -3,7 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     TouchableOpacity,
     ActivityIndicator,
     Alert,
@@ -12,6 +11,7 @@ import {
     Platform,
     StatusBar,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../context/AuthContext";
 import CustomButton from "../components/CustomButton";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -59,93 +59,98 @@ const LoginScreen = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.keyboardAvoidingContainer}
-            >
-                <View style={styles.content}>
-                    <View style={styles.header}>
-                        <MaterialCommunityIcons
-                            name="shield-alert-outline"
-                            size={60}
-                            color="#3a86f4"
-                        />
-                        <Text style={styles.title}>Cidade em Foco</Text>
-                        <Text style={styles.subtitle}>
-                            A sua voz para uma cidade melhor.
-                        </Text>
-                    </View>
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.container}>
+                <StatusBar barStyle="dark-content" />
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={styles.keyboardAvoidingContainer}
+                >
+                    <View style={styles.content}>
+                        <View style={styles.header}>
+                            <MaterialCommunityIcons
+                                name="shield-alert-outline"
+                                size={60}
+                                color="#3a86f4"
+                            />
+                            <Text style={styles.title}>Cidade em Foco</Text>
+                            <Text style={styles.subtitle}>
+                                A sua voz para uma cidade melhor.
+                            </Text>
+                        </View>
 
-                    <View style={styles.inputContainer}>
-                        <MaterialCommunityIcons
-                            name="email-outline"
-                            size={24}
-                            color="#999"
-                            style={styles.inputIcon}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="E-mail"
-                            placeholderTextColor="#a9a9a9"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
-                    </View>
+                        <View style={styles.inputContainer}>
+                            <MaterialCommunityIcons
+                                name="email-outline"
+                                size={24}
+                                color="#999"
+                                style={styles.inputIcon}
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="E-mail"
+                                placeholderTextColor="#a9a9a9"
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                            />
+                        </View>
 
-                    <View style={styles.inputContainer}>
-                        <MaterialCommunityIcons
-                            name="lock-outline"
-                            size={24}
-                            color="#999"
-                            style={styles.inputIcon}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Senha"
-                            placeholderTextColor="#a9a9a9"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                        />
-                    </View>
+                        <View style={styles.inputContainer}>
+                            <MaterialCommunityIcons
+                                name="lock-outline"
+                                size={24}
+                                color="#999"
+                                style={styles.inputIcon}
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Senha"
+                                placeholderTextColor="#a9a9a9"
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry
+                            />
+                        </View>
 
-                    {error && <Text style={styles.errorText}>{error}</Text>}
+                        {error && <Text style={styles.errorText}>{error}</Text>}
 
-                    {isLoading ? (
-                        <ActivityIndicator
-                            size="large"
-                            color="#3a86f4"
-                            style={{ marginTop: 20, marginBottom: 20 }}
-                        />
-                    ) : (
-                        <CustomButton title="Entrar" onPress={handleLogin} />
-                    )}
+                        {isLoading ? (
+                            <ActivityIndicator
+                                size="large"
+                                color="#3a86f4"
+                                style={{ marginTop: 20, marginBottom: 20 }}
+                            />
+                        ) : (
+                            <CustomButton title="Entrar" onPress={handleLogin} />
+                        )}
 
-                    <TouchableOpacity style={styles.offlineButton} onPress={handleOffline}>
-                        <MaterialCommunityIcons name="wifi-off" size={18} color="#7f8c8d" />
-                        <Text style={styles.offlineButtonText}>Registrar Ocorrência Offline</Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.footer}>
-                        <Text style={styles.footerText}>Não tem uma conta?</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-                            <Text style={styles.linkText}>Cadastre-se</Text>
+                        <TouchableOpacity style={styles.offlineButton} onPress={handleOffline}>
+                            <MaterialCommunityIcons name="wifi-off" size={18} color="#7f8c8d" />
+                            <Text style={styles.offlineButtonText}>Registrar Ocorrência Offline</Text>
                         </TouchableOpacity>
+
+                        <View style={styles.footer}>
+                            <Text style={styles.footerText}>Não tem uma conta?</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+                                <Text style={styles.linkText}>Cadastre-se</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
-            </KeyboardAvoidingView>
+                </KeyboardAvoidingView>
+            </View>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    safeArea: {
         flex: 1,
         backgroundColor: "#f0f4f7",
+    },
+    container: {
+        flex: 1,
     },
     keyboardAvoidingContainer: {
         flex: 1,

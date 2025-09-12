@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, Alert, ScrollView,
     TouchableOpacity, Image, TextInput, ActivityIndicator, Linking,
-    KeyboardAvoidingView, Platform, Dimensions
+    KeyboardAvoidingView, Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomButton from '../components/CustomButton';
 import { createOcorrencia } from '../api/ocorrencias';
 import { CATEGORIES } from '../utils/categories';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// ... (SEU OBJETO COLORS PERMANECE O MESMO)
 const COLORS = {
     primary: '#0052A4',
     secondary: '#F58220',
@@ -24,8 +25,8 @@ const COLORS = {
     danger: '#E74C3C',
 };
 
+
 const NovaOcorrenciaScreen = ({ navigation }) => {
-    const insets = useSafeAreaInsets(); // pega espaço seguro
     const [description, setDescription] = useState('');
     const [photo, setPhoto] = useState(null);
     const [location, setLocation] = useState(null);
@@ -99,6 +100,13 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
         const currentLocation = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
         setLocation(currentLocation);
     };
+    
+    // FUNÇÃO PARA LIMPAR OS DADOS DO FORMULÁRIO
+    const resetForm = () => {
+        setDescription('');
+        setPhoto(null);
+        setSelectedCategory(null);
+    };
 
     const handleSubmit = async () => {
         if (!description || !photo || !location || !selectedCategory) {
@@ -125,6 +133,10 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
         try {
             await createOcorrencia(formData);
             Alert.alert('Sucesso!', 'Ocorrência registrada com sucesso!');
+            
+            // LIMPANDO O FORMULÁRIO APÓS O SUCESSO
+            resetForm(); 
+
             navigation.navigate('Início');
         } catch (error) {
             Alert.alert('Erro', 'Não foi possível registrar a ocorrência.');
@@ -133,172 +145,291 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
         }
     };
 
+    // ... (O RESTANTE DO SEU CÓDIGO JSX E ESTILOS CONTINUA O MESMO)
+    
     if (initialLoading) {
         return (
-            <SafeAreaView style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-                <Text style={styles.loadingText}>Carregando...</Text>
+            <SafeAreaView style={styles.safeArea}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <Text style={styles.loadingText}>Carregando...</Text>
+                </View>
             </SafeAreaView>
         );
     }
 
-    const { width } = Dimensions.get('window');
-
     return (
-        <SafeAreaView style={[styles.container, { paddingBottom: insets.bottom }]}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={{ flex: 1 }}
-            >
-                <ScrollView contentContainerStyle={styles.content}>
-                    <View style={[styles.header, { marginTop: Platform.OS === 'ios' ? 0 : 30 }]}>
-                        <Text style={styles.headerTitle}>Reportar Ocorrência</Text>
-                        <Text style={styles.headerSubtitle}>Preencha os detalhes abaixo</Text>
-                    </View>
-
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>1. Tipo de Ocorrência</Text>
-                        <View style={styles.categoryGrid}>
-                            {CATEGORIES.map((cat, index) => {
-                                const isSelected = selectedCategory?.id === cat.id;
-                                const color = index % 2 === 0 ? COLORS.primary : COLORS.secondary;
-                                return (
-                                    <TouchableOpacity
-                                        key={cat.id}
-                                        style={[
-                                            styles.categoryItem,
-                                            { borderColor: isSelected ? color : COLORS.inactive }
-                                        ]}
-                                        onPress={() => setSelectedCategory(cat)}
-                                    >
-                                        <View
-                                            style={[
-                                                styles.iconContainer,
-                                                { backgroundColor: isSelected ? color : 'transparent' }
-                                            ]}
-                                        >
-                                            <MaterialCommunityIcons
-                                                name={cat.icon}
-                                                size={32}
-                                                color={isSelected ? COLORS.white : color}
-                                            />
-                                        </View>
-                                        <Text
-                                            style={[
-                                                styles.categoryText,
-                                                { color: isSelected ? color : COLORS.textPrimary }
-                                            ]}
-                                            numberOfLines={2}
-                                        >
-                                            {cat.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.container}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={{ flex: 1 }}
+                >
+                    <ScrollView contentContainerStyle={styles.content}>
+                        {/* Seu JSX para header, categorias, input, etc. */}
+                        <View style={styles.header}>
+                            <Text style={styles.headerTitle}>Reportar Ocorrência</Text>
+                            <Text style={styles.headerSubtitle}>Preencha os detalhes abaixo</Text>
                         </View>
-                    </View>
 
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>2. Descreva o Problema</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Ex: Buraco grande na rua principal..."
-                            placeholderTextColor="#a9a9a9"
-                            value={description}
-                            onChangeText={setDescription}
-                            multiline
-                        />
-                    </View>
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>1. Tipo de Ocorrência</Text>
+                            <View style={styles.categoryGrid}>
+                                {CATEGORIES.map((cat, index) => {
+                                    const isSelected = selectedCategory?.id === cat.id;
+                                    const color = index % 2 === 0 ? COLORS.primary : COLORS.secondary;
+                                    return (
+                                        <TouchableOpacity
+                                            key={cat.id}
+                                            style={[
+                                                styles.categoryItem,
+                                                { borderColor: isSelected ? color : COLORS.inactive }
+                                            ]}
+                                            onPress={() => setSelectedCategory(cat)}
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.iconContainer,
+                                                    { backgroundColor: isSelected ? color : 'transparent' }
+                                                ]}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name={cat.icon}
+                                                    size={32}
+                                                    color={isSelected ? COLORS.white : color}
+                                                />
+                                            </View>
+                                            <Text
+                                                style={[
+                                                    styles.categoryText,
+                                                    { color: isSelected ? color : COLORS.textPrimary }
+                                                ]}
+                                                numberOfLines={2}
+                                            >
+                                                {cat.name}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        </View>
 
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>3. Adicione uma Evidência</Text>
-                        <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-                            {photo ? (
-                                <Image source={{ uri: photo.uri }} style={styles.imagePreview} />
-                            ) : (
-                                <View style={styles.imagePlaceholder}>
-                                    <Ionicons name="camera" size={40} color={COLORS.primary} />
-                                    <Text style={styles.imageText}>Tirar Foto</Text>
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>2. Descreva o Problema</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Ex: Buraco grande na rua principal..."
+                                placeholderTextColor="#a9a9a9"
+                                value={description}
+                                onChangeText={setDescription}
+                                multiline
+                            />
+                        </View>
 
-                    {!hasLocationPermission ? (
-                        <View style={styles.permissionWarning}>
-                            <Text style={styles.permissionText}>Permissão de localização necessária.</Text>
-                            <TouchableOpacity style={styles.permissionButton} onPress={handleLocationPermission}>
-                                <Text style={styles.permissionButtonText}>Conceder Permissão</Text>
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>3. Adicione uma Evidência</Text>
+                            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+                                {photo ? (
+                                    <Image source={{ uri: photo.uri }} style={styles.imagePreview} />
+                                ) : (
+                                    <View style={styles.imagePlaceholder}>
+                                        <Ionicons name="camera" size={40} color={COLORS.primary} />
+                                        <Text style={styles.imageText}>Tirar Foto</Text>
+                                    </View>
+                                )}
                             </TouchableOpacity>
                         </View>
-                    ) : (
-                        <View style={styles.locationContainer}>
-                            <MaterialCommunityIcons name="map-marker-radius-outline" size={20} color={COLORS.textSecondary} />
-                            {location ? (
-                                <Text style={styles.location}>
-                                    Localização capturada: {location.coords.latitude.toFixed(5)}, {location.coords.longitude.toFixed(5)}
-                                </Text>
+
+                        {!hasLocationPermission ? (
+                            <View style={styles.permissionWarning}>
+                                <Text style={styles.permissionText}>Permissão de localização necessária.</Text>
+                                <TouchableOpacity style={styles.permissionButton} onPress={handleLocationPermission}>
+                                    <Text style={styles.permissionButtonText}>Conceder Permissão</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <View style={styles.locationContainer}>
+                                <MaterialCommunityIcons name="map-marker-radius-outline" size={20} color={COLORS.textSecondary} />
+                                {location ? (
+                                    <Text style={styles.location}>
+                                        Localização capturada: {location.coords.latitude.toFixed(5)}, {location.coords.longitude.toFixed(5)}
+                                    </Text>
+                                ) : (
+                                    <Text style={styles.location}>Obtendo localização...</Text>
+                                )}
+                            </View>
+                        )}
+
+                        <View style={styles.buttonContainer}>
+                            {loading ? (
+                                <ActivityIndicator size="large" color={COLORS.primary} />
                             ) : (
-                                <Text style={styles.location}>Obtendo localização...</Text>
+                                <CustomButton title="Enviar Ocorrência" onPress={handleSubmit} />
                             )}
                         </View>
-                    )}
-
-                    <View style={[styles.buttonContainer, { marginBottom: insets.bottom }]}>
-                        {loading ? (
-                            <ActivityIndicator size="large" color={COLORS.primary} />
-                        ) : (
-                            <CustomButton title="Enviar Ocorrência" onPress={handleSubmit} />
-                        )}
-                    </View>
-                </ScrollView>
-            </KeyboardAvoidingView>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </View>
         </SafeAreaView>
     );
 };
 
+// ... (SEUS ESTILOS COMPLETOS AQUI)
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
-    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-    loadingText: { marginTop: 10, fontSize: 16, color: COLORS.textPrimary },
-    content: { paddingBottom: 20 },
-    header: { paddingHorizontal: 20, paddingVertical: 10 },
-    headerTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.textPrimary },
-    headerSubtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 4 },
-    section: { marginTop: 20, paddingHorizontal: 20 },
-    sectionTitle: { fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 15 },
+    safeArea: {
+        flex: 1,
+        backgroundColor: COLORS.background,
+    },
+    container: {
+        flex: 1,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 10,
+        fontSize: 16,
+        color: COLORS.textPrimary,
+    },
+    content: {
+        paddingBottom: 40,
+        flexGrow: 1,
+    },
+    header: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 10,
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: COLORS.textPrimary,
+    },
+    headerSubtitle: {
+        fontSize: 16,
+        color: COLORS.textSecondary,
+        marginTop: 4,
+    },
+    section: {
+        marginTop: 20,
+        paddingHorizontal: 20,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: COLORS.textPrimary,
+        marginBottom: 15,
+    },
     categoryGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
     },
     categoryItem: {
-        flexGrow: 1,
-        flexBasis: '30%',
-        height: 100,
+        width: '30%',
+        aspectRatio: 1,
         backgroundColor: COLORS.card,
         borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 8,
-        marginBottom: 10,
-        marginRight: 10,
-        borderWidth: 2
+        marginBottom: 15,
+        borderWidth: 2,
     },
-    iconContainer: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-    categoryText: { textAlign: 'center', fontSize: 12, fontWeight: '500' },
-    input: { backgroundColor: COLORS.card, borderRadius: 12, padding: 15, fontSize: 16, minHeight: 100, textAlignVertical: 'top', borderColor: COLORS.inactive, borderWidth: 1, color: COLORS.textPrimary },
-    imagePicker: { backgroundColor: COLORS.card, borderRadius: 12, height: 200, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: COLORS.inactive, borderStyle: 'dashed', overflow: 'hidden' },
-    imagePreview: { width: '100%', height: '100%' },
-    imagePlaceholder: { alignItems: 'center' },
-    imageText: { color: COLORS.primary, fontSize: 16, marginTop: 10, fontWeight: 'bold' },
-    locationContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 15, marginHorizontal: 20, marginTop: 20, backgroundColor: COLORS.inactive, borderRadius: 12 },
-    location: { fontSize: 14, color: COLORS.textSecondary, marginLeft: 8, fontWeight: '500' },
-    buttonContainer: { marginTop: 30, paddingHorizontal: 20 },
-    permissionWarning: { backgroundColor: '#fff3cd', borderRadius: 10, padding: 15, alignItems: 'center', marginTop: 20, marginHorizontal: 20 },
-    permissionText: { color: '#856404', fontSize: 14, textAlign: 'center', marginBottom: 10 },
-    permissionButton: { backgroundColor: '#ffc107', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 8 },
-    permissionButtonText: { color: '#212529', fontWeight: 'bold' },
+    iconContainer: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    categoryText: {
+        textAlign: 'center',
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    input: {
+        backgroundColor: COLORS.card,
+        borderRadius: 12,
+        padding: 15,
+        fontSize: 16,
+        minHeight: 100,
+        textAlignVertical: 'top',
+        borderColor: COLORS.inactive,
+        borderWidth: 1,
+        color: COLORS.textPrimary,
+    },
+    imagePicker: {
+        backgroundColor: COLORS.card,
+        borderRadius: 12,
+        height: 200,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: COLORS.inactive,
+        borderStyle: 'dashed',
+        overflow: 'hidden',
+    },
+    imagePreview: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePlaceholder: {
+        alignItems: 'center',
+    },
+    imageText: {
+        color: COLORS.primary,
+        fontSize: 16,
+        marginTop: 10,
+        fontWeight: 'bold',
+    },
+    locationContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 15,
+        marginHorizontal: 20,
+        marginTop: 20,
+        backgroundColor: '#e9ecef',
+        borderRadius: 12,
+    },
+    location: {
+        fontSize: 14,
+        color: COLORS.textSecondary,
+        marginLeft: 8,
+        fontWeight: '500',
+    },
+    buttonContainer: {
+        marginTop: 30,
+        paddingHorizontal: 20,
+    },
+    permissionWarning: {
+        backgroundColor: '#fff3cd',
+        borderRadius: 10,
+        padding: 15,
+        alignItems: 'center',
+        marginTop: 20,
+        marginHorizontal: 20,
+    },
+    permissionText: {
+        color: '#856404',
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 10,
+    },
+    permissionButton: {
+        backgroundColor: '#ffc107',
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        borderRadius: 8,
+    },
+    permissionButtonText: {
+        color: '#212529',
+        fontWeight: 'bold',
+    },
 });
 
 export default NovaOcorrenciaScreen;

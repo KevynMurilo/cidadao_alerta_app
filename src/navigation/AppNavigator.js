@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { AuthContext } from '../context/AuthContext';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -26,48 +27,10 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const CustomTabBar = ({ state, descriptors, navigation }) => {
-    const styles = StyleSheet.create({
-        tabBarContainer: {
-            flexDirection: 'row',
-            position: 'absolute',
-            bottom: 50,
-            left: 20,
-            right: 20,
-            height: 70,
-            backgroundColor: '#ffffff',
-            borderRadius: 15,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 5,
-            elevation: 5,
-            alignItems: 'center',
-            justifyContent: 'space-around',
-        },
-        tabItem: {
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-        },
-        addButtonContainer: {
-            width: 65,
-            height: 65,
-            borderRadius: 35,
-            backgroundColor: '#3a86f4',
-            justifyContent: 'center',
-            alignItems: 'center',
-            top: -25,
-            shadowColor: '#3a86f4',
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.3,
-            shadowRadius: 5,
-            elevation: 8,
-        },
-    });
+    const insets = useSafeAreaInsets();
 
     return (
-        <View style={styles.tabBarContainer}>
+        <View style={[styles.tabBarContainer, { bottom: insets.bottom > 0 ? insets.bottom : 20 }]}>
             {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
                 const isFocused = state.index === index;
@@ -205,5 +168,44 @@ const AppNavigator = () => {
         </NavigationContainer>
     );
 };
+
+const styles = StyleSheet.create({
+    tabBarContainer: {
+        flexDirection: 'row',
+        position: 'absolute',
+        left: 20,
+        right: 20,
+        height: 70,
+        backgroundColor: '#ffffff',
+        borderRadius: 15,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 5,
+        alignItems: 'center',
+        justifyContent: 'space-around',
+    },
+    tabItem: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+    },
+    addButtonContainer: {
+        width: 65,
+        height: 65,
+        borderRadius: 35,
+        backgroundColor: '#3a86f4',
+        justifyContent: 'center',
+        alignItems: 'center',
+        top: -25,
+        shadowColor: '#3a86f4',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 8,
+    },
+});
 
 export default AppNavigator;
