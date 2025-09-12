@@ -40,3 +40,7 @@ export const getOcorrenciaFoto = async (id) => {
         reader.readAsDataURL(response.data);
     });
 };
+
+export const getOcorrenciaClusters = (params = {}) => {
+    return apiClient.get('/ocorrencias/clusters', { params });
+};

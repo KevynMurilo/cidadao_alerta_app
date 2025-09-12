@@ -14,10 +14,10 @@ import { getMinhasOcorrencias, getOcorrenciaFoto, createOcorrencia } from '../ap
 import { getPendingOcorrencias, removeOcorrenciaLocal } from '../localDB';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { CATEGORIES } from '../utils/categories';
 import * as FileSystem from 'expo-file-system';
 import OcorrenciaCard from '../components/OcorrenciaCard';
-import FilterModal from '../components/FilterModal'; // Importando o novo componente
+import FilterModal from '../components/FilterModal';
+import { CATEGORIES } from '../utils/categories';
 
 const COLORS = {
   primary: '#4A90E2',
@@ -36,14 +36,12 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
   const [offlineOcorrencias, setOfflineOcorrencias] = useState([]);
   const [loading, setLoading] = useState(false);
   const [imagens, setImagens] = useState({});
-
   const [categoriaFilter, setCategoriaFilter] = useState(null);
+  const [statusFilter, setStatusFilter] = useState(null);
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
+  const [activeFilterType, setActiveFilterType] = useState('all');
 
-  const getCategoryNameById = (id) => {
-    if (!id) return null;
-    return CATEGORIES.find(cat => cat.id === id)?.name;
-  };
+  const getCategoryNameById = (id) => CATEGORIES.find(cat => cat.id === id)?.name;
 
   const fetchImagem = async (id) => {
     try {
@@ -52,12 +50,17 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     } catch {}
   };
 
-  const fetchData = async (tab) => {
+  const fetchData = async () => {
     if (!userInfo) return;
     setLoading(true);
     try {
-      if (tab === 'ocorrencias') {
-        const params = { page: 0, size: 50, category: categoriaFilter || undefined };
+      if (activeTab === 'ocorrencias') {
+        const params = {
+          page: 0,
+          size: 50,
+          category: categoriaFilter || undefined,
+          status: statusFilter || undefined,
+        };
         const response = await getMinhasOcorrencias(params);
         let lista = response.data?.data?.content || [];
         setOcorrencias(lista);
@@ -65,11 +68,13 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
       }
       const offlineList = await getPendingOcorrencias();
       setOfflineOcorrencias(
-        offlineList.map(o => ({
-          ...o,
-          categoryName: CATEGORIES.find(c => c.id === o.categoryId)?.name || 'Offline',
-          status: o.syncStatus || 'PENDING',
-        })).filter(o => activeTab === 'offline' ? (!categoriaFilter || o.categoryId === categoriaFilter) : true)
+        offlineList
+          .map(o => ({
+            ...o,
+            categoryName: CATEGORIES.find(c => c.id === o.categoryId)?.name || 'Offline',
+            status: o.syncStatus || 'PENDING',
+          }))
+          .filter(o => !categoriaFilter || o.categoryId === categoriaFilter)
       );
     } catch (error) {
       console.log(error);
@@ -78,20 +83,20 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     }
   };
 
-  useFocusEffect(useCallback(() => { fetchData(activeTab); }, [activeTab, userInfo, categoriaFilter]));
+  useFocusEffect(useCallback(() => { fetchData(); }, [activeTab, userInfo, categoriaFilter, statusFilter]));
 
   const handleApplyFilters = (newFilters) => {
     setCategoriaFilter(newFilters.category || null);
+    if (activeTab === 'ocorrencias') setStatusFilter(newFilters.status || null);
     setFilterModalVisible(false);
   };
-  
+
   const handleClearFilters = () => {
     setCategoriaFilter(null);
+    if (activeTab === 'ocorrencias') setStatusFilter(null);
   };
 
-  const handleCardPress = (item) => {
-    navigation.navigate('DetalheOcorrencia', { id: item.id });
-  };
+  const handleCardPress = (item) => navigation.navigate('DetalheOcorrencia', { id: item.id });
 
   const sendOfflineOcorrencia = async (ocorrencia) => {
     try {
@@ -104,14 +109,15 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
       const uriParts = ocorrencia.photoUri.split(".");
       const fileType = uriParts[uriParts.length - 1];
       formData.append("photo", {
-        uri: ocorrencia.photoUri, name: `photo.${fileType}`, type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+        uri: ocorrencia.photoUri,
+        name: `photo.${fileType}`,
+        type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
       });
       formData.append("category", ocorrencia.categoryId);
       await createOcorrencia(formData);
       await removeOcorrenciaLocal(ocorrencia.id);
       Alert.alert("Sucesso!", "Ocorrência enviada!");
-      fetchData('offline');
-      fetchData('ocorrencias');
+      fetchData();
     } catch (error) {
       console.log(error);
       Alert.alert("Erro", "Falha ao enviar ocorrência offline.");
@@ -130,6 +136,7 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
+        {/* Tabs */}
         <View style={styles.tabContainer}>
           <TouchableOpacity style={[styles.tab, activeTab === 'ocorrencias' && styles.activeTab]} onPress={() => setActiveTab('ocorrencias')}>
             <Text style={[styles.tabText, activeTab === 'ocorrencias' && styles.activeTabText]}>Minhas Ocorrências</Text>
@@ -139,18 +146,30 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
+        {/* Filters */}
         <View style={styles.filterBar}>
-          <TouchableOpacity style={styles.filterPill} onPress={() => setFilterModalVisible(true)}>
-            <Text style={styles.filterPillText}>Categoria: {getCategoryNameById(categoriaFilter) || 'Todas'}</Text>
+          <TouchableOpacity style={styles.filterPill} onPress={() => { setActiveFilterType('category'); setFilterModalVisible(true); }}>
+            <Text style={styles.filterPillText}>
+              Categoria: {getCategoryNameById(categoriaFilter) || 'Todas'}
+            </Text>
             <Ionicons name="chevron-down" size={16} color={COLORS.textSecondary} />
           </TouchableOpacity>
-          {categoriaFilter && (
+          {activeTab === 'ocorrencias' && (
+            <TouchableOpacity style={styles.filterPill} onPress={() => { setActiveFilterType('status'); setFilterModalVisible(true); }}>
+              <Text style={styles.filterPillText}>
+                Status: {statusFilter || 'Todos'}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          )}
+          {(categoriaFilter || statusFilter) && (
             <TouchableOpacity style={styles.clearButton} onPress={handleClearFilters}>
               <Text style={styles.clearButtonText}>Limpar</Text>
             </TouchableOpacity>
           )}
         </View>
 
+        {/* Lista */}
         {loading ? (
           <ActivityIndicator style={{ flex: 1 }} size="large" color={COLORS.primary} />
         ) : (
@@ -170,12 +189,20 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
         )}
       </View>
 
+      {/* Filter Modal */}
       <FilterModal
         visible={isFilterModalVisible}
         onClose={() => setFilterModalVisible(false)}
         onApply={handleApplyFilters}
-        initialValues={{ category: categoriaFilter }}
+        initialValues={{ category: categoriaFilter, status: statusFilter }}
         categoryOptions={CATEGORIES}
+        statusOptions={[
+          { label: 'Pendente para Aprovação', value: 'PENDENTE_APROVACAO' },
+          { label: 'Aberto', value: 'ABERTO' },
+          { label: 'Em Andamento', value: 'EM_ANDAMENTO' },
+          { label: 'Finalizado', value: 'FINALIZADO' },
+        ]}
+        activeFilterType={activeFilterType}
       />
     </SafeAreaView>
   );
@@ -202,7 +229,7 @@ const styles = StyleSheet.create({
   filterBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     paddingHorizontal: 20,
     paddingVertical: 15,
     backgroundColor: COLORS.white,
@@ -218,6 +245,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
+    marginRight: 10,
   },
   filterPillText: { fontSize: 14, fontWeight: '500', color: COLORS.textPrimary, marginRight: 6 },
   clearButton: { padding: 8 },

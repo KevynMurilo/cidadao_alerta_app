@@ -7,7 +7,6 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  Platform,
   ScrollView,
   Modal,
 } from 'react-native';
@@ -18,8 +17,9 @@ import * as Location from 'expo-location';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { getOcorrencias, getOcorrenciaFoto } from '../api/ocorrencias';
+import { getOcorrenciaClusters, getOcorrenciaFoto } from '../api/ocorrencias';
 import OcorrenciaCard from '../components/OcorrenciaCard';
+import { CATEGORIES } from '../utils/categories'; 
 
 const DateSelector = ({ label, date, onChange }) => {
   const [isPickerVisible, setPickerVisible] = useState(false);
@@ -69,52 +69,6 @@ const MapaScreen = ({ navigation }) => {
   const [filterModal, setFilterModal] = useState(false);
   const [isWebviewReady, setWebviewReady] = useState(false);
 
-  const getDistance = (p1, p2) => {
-    const rad = (x) => (x * Math.PI) / 180;
-    const R = 6378137;
-    const dLat = rad(p2.latitude - p1.latitude);
-    const dLong = rad(p2.longitude - p1.longitude);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(rad(p1.latitude)) *
-        Math.cos(rad(p2.latitude)) *
-        Math.sin(dLong / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  const criarClusters = (pontos, raio) => {
-    const clustersResult = [];
-    const visitados = new Array(pontos.length).fill(false);
-    for (let i = 0; i < pontos.length; i++) {
-      if (!visitados[i]) {
-        visitados[i] = true;
-        const novoCluster = {
-          lat: pontos[i].lat,
-          lon: pontos[i].lon,
-          items: [pontos[i]],
-          count: 1,
-          clusterId: `cluster-${i}`,
-        };
-        for (let j = i + 1; j < pontos.length; j++) {
-          if (!visitados[j]) {
-            const distancia = getDistance(
-              { latitude: pontos[i].lat, longitude: pontos[i].lon },
-              { latitude: pontos[j].lat, longitude: pontos[j].lon }
-            );
-            if (distancia < raio) {
-              visitados[j] = true;
-              novoCluster.items.push(pontos[j]);
-              novoCluster.count++;
-            }
-          }
-        }
-        clustersResult.push(novoCluster);
-      }
-    }
-    return clustersResult;
-  };
-
   const fetchImagem = async (id) => {
     try {
       const base64 = await getOcorrenciaFoto(id);
@@ -124,26 +78,29 @@ const MapaScreen = ({ navigation }) => {
     } catch {}
   };
 
-  // Recarrega dados toda vez que a tela entra em foco
   useFocusEffect(
     useCallback(() => {
       const fetchData = async () => {
         setLoading(true);
         try {
           await Location.requestForegroundPermissionsAsync();
-          const params = {};
+
+          const params = { radiusMeters: 200 };
           if (statusFilter) params.status = statusFilter;
-          if (categoriaFilter) params.categoria = categoriaFilter;
+          if (categoriaFilter) params.category = categoriaFilter;
           if (startDate) params.startDate = startDate.toISOString();
           if (endDate) params.endDate = endDate.toISOString();
 
-          const response = await getOcorrencias(params);
-          const lista = response.data?.data?.content || [];
-          lista.forEach((item) => {
-            if (item.photoUrl && item.photoUrl !== 'string') fetchImagem(item.id);
+          const response = await getOcorrenciaClusters(params);
+          const lista = response.data?.data || [];
+
+          lista.forEach((cluster) => {
+            cluster.items.forEach((item) => {
+              if (item.photoUrl && item.photoUrl !== 'string') fetchImagem(item.id);
+            });
           });
-          const clustersCalculados = criarClusters(lista, 200);
-          setClusters(clustersCalculados);
+
+          setClusters(lista);
         } catch (error) {
           Alert.alert('Erro ao carregar mapa', error.message);
         } finally {
@@ -276,6 +233,8 @@ const MapaScreen = ({ navigation }) => {
                     <Ionicons name="close-circle" size={28} color="#e74c3c" />
                   </TouchableOpacity>
                 </View>
+
+                {/* Status */}
                 <View style={styles.filterGroup}>
                   <Text style={styles.filterLabel}>Status</Text>
                   {['ABERTO', 'EM_ANDAMENTO', 'FINALIZADO'].map((s) => (
@@ -288,23 +247,27 @@ const MapaScreen = ({ navigation }) => {
                     </TouchableOpacity>
                   ))}
                 </View>
+
                 <View style={styles.filterGroup}>
                   <Text style={styles.filterLabel}>Categoria</Text>
-                  {['ASSALTO', 'INCÊNDIO', 'ACIDENTE'].map((c) => (
+                  {CATEGORIES.map((c) => (
                     <TouchableOpacity
-                      key={c}
-                      style={[styles.filterOption, tempCategoriaFilter === c && styles.selectedOption]}
-                      onPress={() => setTempCategoriaFilter(c)}
+                      key={c.id}
+                      style={[styles.filterOption, tempCategoriaFilter === c.id && styles.selectedOption]}
+                      onPress={() => setTempCategoriaFilter(c.id)}
                     >
-                      <Text style={[styles.filterOptionText, tempCategoriaFilter === c && styles.selectedText]}>{c}</Text>
+                      <Text style={[styles.filterOptionText, tempCategoriaFilter === c.id && styles.selectedText]}>{c.name}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
+
+                {/* Período */}
                 <View style={styles.filterGroup}>
                   <Text style={styles.filterLabel}>Período</Text>
                   <DateSelector label="Data inicial" date={tempStartDate} onChange={setTempStartDate} />
                   <DateSelector label="Data final" date={tempEndDate} onChange={setTempEndDate} />
                 </View>
+
                 <View style={styles.actions}>
                   <TouchableOpacity style={styles.clearButton} onPress={limparFiltros}>
                     <Text style={styles.clearText}>Limpar</Text>

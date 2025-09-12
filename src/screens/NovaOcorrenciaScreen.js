@@ -12,7 +12,6 @@ import CustomButton from '../components/CustomButton';
 import { createOcorrencia } from '../api/ocorrencias';
 import { CATEGORIES } from '../utils/categories';
 
-// ... (SEU OBJETO COLORS PERMANECE O MESMO)
 const COLORS = {
     primary: '#0052A4',
     secondary: '#F58220',
@@ -101,7 +100,6 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
         setLocation(currentLocation);
     };
     
-    // FUNÇÃO PARA LIMPAR OS DADOS DO FORMULÁRIO
     const resetForm = () => {
         setDescription('');
         setPhoto(null);
@@ -134,18 +132,16 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
             await createOcorrencia(formData);
             Alert.alert('Sucesso!', 'Ocorrência registrada com sucesso!');
             
-            // LIMPANDO O FORMULÁRIO APÓS O SUCESSO
             resetForm(); 
 
             navigation.navigate('Início');
         } catch (error) {
+            console.log(error);
             Alert.alert('Erro', 'Não foi possível registrar a ocorrência.');
         } finally {
             setLoading(false);
         }
     };
-
-    // ... (O RESTANTE DO SEU CÓDIGO JSX E ESTILOS CONTINUA O MESMO)
     
     if (initialLoading) {
         return (
@@ -274,7 +270,6 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
     );
 };
 
-// ... (SEUS ESTILOS COMPLETOS AQUI)
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
@@ -405,6 +400,7 @@ const styles = StyleSheet.create({
     buttonContainer: {
         marginTop: 30,
         paddingHorizontal: 20,
+        marginBottom: 80
     },
     permissionWarning: {
         backgroundColor: '#fff3cd',

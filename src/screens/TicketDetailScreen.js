@@ -181,7 +181,7 @@ const TicketDetailScreen = ({ route, navigation }) => {
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.flexContainer}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 45 : 35}
             >
                 <FlatList
                     ref={flatListRef}
@@ -209,6 +209,7 @@ const TicketDetailScreen = ({ route, navigation }) => {
                             style={styles.input}
                             placeholder="Digite sua mensagem..."
                             value={newMessage}
+                            placeholderTextColor={'#ccc'}
                             onChangeText={setNewMessage}
                             multiline
                         />

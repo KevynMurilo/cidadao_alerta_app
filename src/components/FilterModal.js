@@ -1,5 +1,3 @@
-// src/components/FilterModal.js
-
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +18,7 @@ const FilterModal = ({
   initialValues,
   statusOptions,
   categoryOptions,
-  activeFilterType = 'all', // Nova prop com valor padrão 'all'
+  activeFilterType = 'all', 
 }) => {
   const [tempFilters, setTempFilters] = useState({});
 
