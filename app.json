@@ -28,7 +28,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nyv3k.cidadeemfoco",
+      "bundleIdentifier": "br.gov.formosa.formosaEmFoco",
       "infoPlist": {
         "NSCameraUsageDescription": "A app necessita de acesso à sua câmera para tirar fotos.",
         "NSPhotoLibraryUsageDescription": "A app necessita de acesso à galeria para selecionar fotos.",
@@ -36,7 +36,7 @@
       }
     },
     "android": {
-      "package": "com.nyv3k.cidadeemfoco",
+      "package": "br.gov.formosa.formosaEmFoco",
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/logo.png",
         "backgroundColor": "#ffffff"
@@ -56,7 +56,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "c90692be-c1fc-4897-8a02-55c8e1f56094"
+        "projectId": "3c60811d-99ec-4474-b34d-faf001171804"
       }
     }
   },

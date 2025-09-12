@@ -31,6 +31,7 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
   const [location, setLocation] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0]);
   const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
     const init = async () => {
@@ -53,29 +54,39 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
     });
     if (!result.canceled && result.assets?.length > 0) {
       setPhoto(result.assets[0]);
+      if (validationErrors.photo) {
+        setValidationErrors(prev => ({ ...prev, photo: false }));
+      }
     }
   };
 
-  // ✅ FUNÇÃO DE LIMPEZA
   const resetForm = () => {
     setDescription("");
     setPhoto(null);
     setSelectedCategory(CATEGORIES[0]);
+    setValidationErrors({});
   };
 
   const handleSubmit = async () => {
-    if (!description || !photo || !location) {
+    const errors = {};
+    if (!description.trim()) errors.description = true;
+    if (!photo) errors.photo = true;
+
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0 || !location) {
       Alert.alert(
-        "Campos Incompletos",
-        "Preencha todos os dados e tire uma foto."
+        "Campos Obrigatórios",
+        "Por favor, preencha todos os campos destacados."
       );
       return;
     }
+
     setLoading(true);
     try {
       const ocorrencia = {
         id: Crypto.randomUUID(),
-        description,
+        description: description.trim(),
         photoUri: photo.uri,
         lat: location.coords.latitude,
         lon: location.coords.longitude,
@@ -86,7 +97,6 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
       await insertOcorrenciaLocal(ocorrencia);
       Alert.alert("Sucesso!", "Ocorrência salva offline!");
       
-      // ✅ CHAMANDO A FUNÇÃO DE LIMPEZA
       resetForm();
 
       navigation.goBack();
@@ -98,7 +108,6 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
     }
   };
 
-  // O restante do seu código (JSX e estilos) permanece o mesmo...
   return (
     <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
@@ -108,7 +117,7 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
             >
                 <ScrollView contentContainerStyle={styles.content}>
                     <Text style={styles.headerTitle}>Reportar Ocorrência (Offline)</Text>
-                    {/* ... Seu JSX ... */}
+                    
                     <Text style={styles.sectionTitle}>1. Selecione a Categoria</Text>
                     <View style={styles.categoryGrid}>
                         {CATEGORIES.map((cat, index) => {
@@ -138,18 +147,23 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
                         })}
                     </View>
 
-                    <Text style={styles.sectionTitle}>2. Descreva o Problema</Text>
+                    <Text style={[styles.sectionTitle, validationErrors.description && styles.errorText]}>2. Descreva o Problema</Text>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, validationErrors.description && styles.errorBorder]}
                         placeholder="Descreva o problema..."
                         value={description}
                         placeholderTextColor="#a9a9a9"
-                        onChangeText={setDescription}
+                        onChangeText={(text) => {
+                          setDescription(text);
+                          if (validationErrors.description) {
+                              setValidationErrors(prev => ({ ...prev, description: false }));
+                          }
+                        }}
                         multiline
                     />
 
-                    <Text style={styles.sectionTitle}>3. Adicione uma Evidência</Text>
-                    <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+                    <Text style={[styles.sectionTitle, validationErrors.photo && styles.errorText]}>3. Adicione uma Evidência</Text>
+                    <TouchableOpacity style={[styles.imagePicker, validationErrors.photo && styles.errorBorder]} onPress={pickImage}>
                         {photo ? (
                             <Image source={{ uri: photo.uri }} style={styles.imagePreview} />
                         ) : (
@@ -280,6 +294,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 12,
     fontWeight: "500"
+  },
+  errorBorder: {
+    borderColor: COLORS.danger,
+    borderWidth: 1,
+  },
+  errorText: {
+    color: COLORS.danger,
   },
 });
 

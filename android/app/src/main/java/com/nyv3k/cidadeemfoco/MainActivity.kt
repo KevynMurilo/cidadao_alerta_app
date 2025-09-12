@@ -1,4 +1,4 @@
-package com.nyv3k.cidadeemfoco
+package br.gov.formosa.formosaEmFoco
 
 import android.os.Build
 import android.os.Bundle

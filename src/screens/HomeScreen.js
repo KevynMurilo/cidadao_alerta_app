@@ -6,7 +6,6 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
@@ -51,7 +50,7 @@ const HomeScreen = ({ navigation }) => {
 
   const getCategoryNameById = (id) => {
     if (!id) return null;
-    return CATEGORIES.find(cat => cat.id === id)?.name;
+    return CATEGORIES.find((cat) => cat.id === id)?.name;
   };
 
   const formatStatus = (status) => {
@@ -106,7 +105,7 @@ const HomeScreen = ({ navigation }) => {
     setActiveFilterType(type);
     setFilterModalVisible(true);
   };
-  
+
   const handleApplyFilters = (newFilters) => {
     setStatusFilter(newFilters.status || null);
     setCategoriaIdFilter(newFilters.category || null);
@@ -118,31 +117,50 @@ const HomeScreen = ({ navigation }) => {
     setCategoriaIdFilter(null);
   };
 
-  const renderListHeader = () => (
-    <View style={styles.headerContainer}>
-      <Text style={styles.screenTitle}>Feed de Ocorrências</Text>
-      <View style={styles.filterBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity style={styles.filterPill} onPress={() => openModalWithType('status')}>
-            <Text style={styles.filterPillText}>Status: {formatStatus(statusFilter)}</Text>
-            <Ionicons name="chevron-down" size={16} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterPill} onPress={() => openModalWithType('category')}>
-            <Text style={styles.filterPillText}>Categoria: {getCategoryNameById(categoriaIdFilter) || 'Todas'}</Text>
-            <Ionicons name="chevron-down" size={16} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-        </ScrollView>
-        {(statusFilter || categoriaIdFilter) && (
-          <TouchableOpacity style={styles.clearButton} onPress={handleClearFilters}>
-            <Text style={styles.clearButtonText}>Limpar</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Header fixo */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.screenTitle}>Feed de Ocorrências</Text>
+        <View style={styles.filterBar}>
+          <TouchableOpacity
+            style={styles.filterPill}
+            onPress={() => openModalWithType('status')}
+          >
+            <Text style={styles.filterPillText}>
+              Status: {formatStatus(statusFilter)}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={16}
+              color={COLORS.textSecondary}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.filterPill}
+            onPress={() => openModalWithType('category')}
+          >
+            <Text style={styles.filterPillText}>
+              Categoria: {getCategoryNameById(categoriaIdFilter) || 'Todas'}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={16}
+              color={COLORS.textSecondary}
+            />
+          </TouchableOpacity>
+          {(statusFilter || categoriaIdFilter) && (
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleClearFilters}
+            >
+              <Text style={styles.clearButtonText}>Limpar</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Lista */}
       <View style={styles.container}>
         <FlatList
           data={ocorrencias}
@@ -157,12 +175,15 @@ const HomeScreen = ({ navigation }) => {
           contentContainerStyle={styles.listContent}
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          ListHeaderComponent={renderListHeader}
           ItemSeparatorComponent={ListItemSeparator}
           ListEmptyComponent={
             !loading && (
               <View style={styles.emptyContainer}>
-                <MaterialCommunityIcons name="magnify-close" size={60} color="#CBD5E0" />
+                <MaterialCommunityIcons
+                  name="magnify-close"
+                  size={60}
+                  color="#CBD5E0"
+                />
                 <Text style={styles.emptyTitle}>Nenhuma Ocorrência</Text>
                 <Text style={styles.emptySubtitle}>
                   Não encontramos ocorrências com os filtros selecionados.
@@ -194,30 +215,37 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
   container: { flex: 1 },
-  headerContainer: { paddingBottom: 10, paddingHorizontal: 20 },
+  headerContainer: {
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
   screenTitle: {
     fontSize: 26,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   filterBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
   },
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.background,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
     marginRight: 10,
+    marginBottom: 8,
   },
   filterPillText: {
     fontSize: 14,
@@ -225,15 +253,13 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginRight: 6,
   },
-  clearButton: {
-    padding: 8,
-  },
+  clearButton: { padding: 8 },
   clearButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.primary,
   },
-  listContent: { paddingHorizontal: 20, paddingBottom: 110 },
+  listContent: { paddingHorizontal: 20, paddingBottom: 110, paddingTop: 10 },
   separator: { height: 16 },
   emptyContainer: {
     justifyContent: 'center',
@@ -241,8 +267,18 @@ const styles = StyleSheet.create({
     padding: 40,
     marginTop: 50,
   },
-  emptyTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.textPrimary, marginTop: 20 },
-  emptySubtitle: { fontSize: 16, color: COLORS.textSecondary, textAlign: 'center', marginTop: 8 },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.textPrimary,
+    marginTop: 20,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(247, 248, 250, 0.8)',

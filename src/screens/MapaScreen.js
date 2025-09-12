@@ -19,7 +19,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { getOcorrenciaClusters, getOcorrenciaFoto } from '../api/ocorrencias';
 import OcorrenciaCard from '../components/OcorrenciaCard';
-import { CATEGORIES } from '../utils/categories'; 
+import { CATEGORIES } from '../utils/categories';
 
 const DateSelector = ({ label, date, onChange }) => {
   const [isPickerVisible, setPickerVisible] = useState(false);
@@ -31,7 +31,9 @@ const DateSelector = ({ label, date, onChange }) => {
         onPress={() => setPickerVisible(true)}
       >
         <Ionicons name="calendar" size={18} color="#34495e" />
-        <Text style={styles.dateText}>{date ? date.toLocaleDateString() : label}</Text>
+        <Text style={styles.dateText}>
+          {date ? date.toLocaleDateString() : label}
+        </Text>
       </TouchableOpacity>
       <DateTimePickerModal
         isVisible={isPickerVisible}
@@ -131,7 +133,9 @@ const MapaScreen = ({ navigation }) => {
     }
   };
 
-  const renderItem = ({ item }) => <OcorrenciaCard item={item} imagem={imagens[item.id]} />;
+  const renderItem = ({ item }) => (
+    <OcorrenciaCard item={item} imagem={imagens[item.id]} />
+  );
 
   const handleApplyFilters = () => {
     setStatusFilter(tempStatusFilter);
@@ -212,7 +216,10 @@ const MapaScreen = ({ navigation }) => {
 
         {/* Botão azul superior direito */}
         <View style={styles.fabContainer}>
-          <TouchableOpacity style={styles.fab} onPress={() => setFilterModal(true)}>
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => setFilterModal(true)}
+          >
             <Ionicons name="filter" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -240,23 +247,44 @@ const MapaScreen = ({ navigation }) => {
                   {['ABERTO', 'EM_ANDAMENTO', 'FINALIZADO'].map((s) => (
                     <TouchableOpacity
                       key={s}
-                      style={[styles.filterOption, tempStatusFilter === s && styles.selectedOption]}
+                      style={[
+                        styles.filterOption,
+                        tempStatusFilter === s && styles.selectedOption,
+                      ]}
                       onPress={() => setTempStatusFilter(s)}
                     >
-                      <Text style={[styles.filterOptionText, tempStatusFilter === s && styles.selectedText]}>{s}</Text>
+                      <Text
+                        style={[
+                          styles.filterOptionText,
+                          tempStatusFilter === s && styles.selectedText,
+                        ]}
+                      >
+                        {s}
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
 
+                {/* Categoria */}
                 <View style={styles.filterGroup}>
                   <Text style={styles.filterLabel}>Categoria</Text>
                   {CATEGORIES.map((c) => (
                     <TouchableOpacity
                       key={c.id}
-                      style={[styles.filterOption, tempCategoriaFilter === c.id && styles.selectedOption]}
+                      style={[
+                        styles.filterOption,
+                        tempCategoriaFilter === c.id && styles.selectedOption,
+                      ]}
                       onPress={() => setTempCategoriaFilter(c.id)}
                     >
-                      <Text style={[styles.filterOptionText, tempCategoriaFilter === c.id && styles.selectedText]}>{c.name}</Text>
+                      <Text
+                        style={[
+                          styles.filterOptionText,
+                          tempCategoriaFilter === c.id && styles.selectedText,
+                        ]}
+                      >
+                        {c.name}
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -264,19 +292,36 @@ const MapaScreen = ({ navigation }) => {
                 {/* Período */}
                 <View style={styles.filterGroup}>
                   <Text style={styles.filterLabel}>Período</Text>
-                  <DateSelector label="Data inicial" date={tempStartDate} onChange={setTempStartDate} />
-                  <DateSelector label="Data final" date={tempEndDate} onChange={setTempEndDate} />
+                  <DateSelector
+                    label="Data inicial"
+                    date={tempStartDate}
+                    onChange={setTempStartDate}
+                  />
+                  <DateSelector
+                    label="Data final"
+                    date={tempEndDate}
+                    onChange={setTempEndDate}
+                  />
                 </View>
+              </ScrollView>
 
+              {/* Botões fixos respeitando SafeArea */}
+              <SafeAreaView edges={['bottom']}>
                 <View style={styles.actions}>
-                  <TouchableOpacity style={styles.clearButton} onPress={limparFiltros}>
+                  <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={limparFiltros}
+                  >
                     <Text style={styles.clearText}>Limpar</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
+                  <TouchableOpacity
+                    style={styles.applyButton}
+                    onPress={handleApplyFilters}
+                  >
                     <Text style={styles.applyText}>Aplicar</Text>
                   </TouchableOpacity>
                 </View>
-              </ScrollView>
+              </SafeAreaView>
             </View>
           </View>
         </Modal>
@@ -339,7 +384,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 5,
   },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
   filterContainer: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
@@ -347,23 +396,71 @@ const styles = StyleSheet.create({
     maxHeight: '70%',
     padding: 15,
   },
-  filterHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   filterTitle: { fontSize: 20, fontWeight: 'bold' },
   filterGroup: { marginBottom: 12 },
   filterLabel: { fontSize: 16, fontWeight: '600', marginBottom: 6 },
-  filterOption: { padding: 10, backgroundColor: '#ecf0f1', borderRadius: 8, marginVertical: 3 },
+  filterOption: {
+    padding: 10,
+    backgroundColor: '#ecf0f1',
+    borderRadius: 8,
+    marginVertical: 3,
+  },
   selectedOption: { backgroundColor: '#3a86f4' },
   filterOptionText: { fontSize: 14, color: '#333' },
   selectedText: { color: '#fff', fontWeight: 'bold' },
-  dateButton: { flexDirection: 'row', alignItems: 'center', padding: 10, backgroundColor: '#ecf0f1', borderRadius: 8, marginVertical: 3 },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: '#ecf0f1',
+    borderRadius: 8,
+    marginVertical: 3,
+  },
   dateText: { marginLeft: 6, color: '#34495e' },
-  actions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 },
-  clearButton: { backgroundColor: '#bdc3c7', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
-  applyButton: { backgroundColor: '#3a86f4', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
-  clearText: { color: '#2c3e50', fontWeight: '600' },
-  applyText: { color: '#fff', fontWeight: 'bold' },
-  modalContainer: { height: '60%', backgroundColor: '#f0f4f7', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, borderBottomWidth: 1, borderColor: '#ddd', backgroundColor: '#fff' },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 15,
+    paddingBottom: 5,
+  },
+  clearButton: {
+    backgroundColor: '#bdc3c7',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 8,
+  },
+  applyButton: {
+    backgroundColor: '#3a86f4',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flex: 1,
+    marginLeft: 8,
+  },
+  clearText: { color: '#2c3e50', fontWeight: '600', textAlign: 'center' },
+  applyText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
+  modalContainer: {
+    height: '60%',
+    backgroundColor: '#f0f4f7',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+  },
   modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
 });
 

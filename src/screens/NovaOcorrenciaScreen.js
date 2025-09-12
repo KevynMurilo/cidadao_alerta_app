@@ -33,6 +33,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const [hasLocationPermission, setHasLocationPermission] = useState(false);
+    const [validationErrors, setValidationErrors] = useState({});
 
     useEffect(() => {
         let locationSubscription;
@@ -81,6 +82,9 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
 
         if (!result.canceled && result.assets?.length > 0) {
             setPhoto(result.assets[0]);
+            if (validationErrors.photo) {
+                setValidationErrors(prev => ({ ...prev, photo: false }));
+            }
         }
     };
 
@@ -99,22 +103,34 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
         const currentLocation = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
         setLocation(currentLocation);
     };
-    
+
     const resetForm = () => {
         setDescription('');
         setPhoto(null);
         setSelectedCategory(null);
+        setValidationErrors({});
     };
 
     const handleSubmit = async () => {
-        if (!description || !photo || !location || !selectedCategory) {
-            Alert.alert('Campos Incompletos', 'Por favor, descreva o problema, tire uma foto e selecione uma categoria.');
+        const errors = {};
+        if (!selectedCategory) errors.category = true;
+        if (!description.trim()) errors.description = true;
+        if (!photo) errors.photo = true;
+
+        setValidationErrors(errors);
+
+        if (Object.keys(errors).length > 0 || !location) {
+            Alert.alert(
+                'Campos Obrigatórios',
+                'Por favor, preencha todos os campos destacados.'
+            );
             return;
         }
+
         setLoading(true);
 
         const formData = new FormData();
-        formData.append('description', description);
+        formData.append('description', description.trim());
         formData.append('lat', location.coords.latitude);
         formData.append('lon', location.coords.longitude);
         formData.append('category', selectedCategory.id);
@@ -131,10 +147,8 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
         try {
             await createOcorrencia(formData);
             Alert.alert('Sucesso!', 'Ocorrência registrada com sucesso!');
-            
-            resetForm(); 
-
-            navigation.navigate('Início');
+            resetForm();
+            navigation.navigate('Minhas Ocorrências');
         } catch (error) {
             console.log(error);
             Alert.alert('Erro', 'Não foi possível registrar a ocorrência.');
@@ -142,7 +156,7 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
             setLoading(false);
         }
     };
-    
+
     if (initialLoading) {
         return (
             <SafeAreaView style={styles.safeArea}>
@@ -162,14 +176,13 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                     style={{ flex: 1 }}
                 >
                     <ScrollView contentContainerStyle={styles.content}>
-                        {/* Seu JSX para header, categorias, input, etc. */}
                         <View style={styles.header}>
                             <Text style={styles.headerTitle}>Reportar Ocorrência</Text>
                             <Text style={styles.headerSubtitle}>Preencha os detalhes abaixo</Text>
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>1. Tipo de Ocorrência</Text>
+                            <Text style={[styles.sectionTitle, validationErrors.category && styles.errorText]}>1. Tipo de Ocorrência</Text>
                             <View style={styles.categoryGrid}>
                                 {CATEGORIES.map((cat, index) => {
                                     const isSelected = selectedCategory?.id === cat.id;
@@ -181,7 +194,12 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                                                 styles.categoryItem,
                                                 { borderColor: isSelected ? color : COLORS.inactive }
                                             ]}
-                                            onPress={() => setSelectedCategory(cat)}
+                                            onPress={() => {
+                                                setSelectedCategory(cat);
+                                                if (validationErrors.category) {
+                                                    setValidationErrors(prev => ({ ...prev, category: false }));
+                                                }
+                                            }}
                                         >
                                             <View
                                                 style={[
@@ -211,20 +229,25 @@ const NovaOcorrenciaScreen = ({ navigation }) => {
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>2. Descreva o Problema</Text>
+                            <Text style={[styles.sectionTitle, validationErrors.description && styles.errorText]}>2. Descreva o Problema</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, validationErrors.description && styles.errorBorder]}
                                 placeholder="Ex: Buraco grande na rua principal..."
                                 placeholderTextColor="#a9a9a9"
                                 value={description}
-                                onChangeText={setDescription}
+                                onChangeText={(text) => {
+                                    setDescription(text);
+                                    if (validationErrors.description) {
+                                        setValidationErrors(prev => ({ ...prev, description: false }));
+                                    }
+                                }}
                                 multiline
                             />
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>3. Adicione uma Evidência</Text>
-                            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+                            <Text style={[styles.sectionTitle, validationErrors.photo && styles.errorText]}>3. Adicione uma Evidência</Text>
+                            <TouchableOpacity style={[styles.imagePicker, validationErrors.photo && styles.errorBorder]} onPress={pickImage}>
                                 {photo ? (
                                     <Image source={{ uri: photo.uri }} style={styles.imagePreview} />
                                 ) : (
@@ -425,6 +448,13 @@ const styles = StyleSheet.create({
     permissionButtonText: {
         color: '#212529',
         fontWeight: 'bold',
+    },
+    errorBorder: {
+        borderColor: COLORS.danger,
+        borderWidth: 1,
+    },
+    errorText: {
+        color: COLORS.danger,
     },
 });
 

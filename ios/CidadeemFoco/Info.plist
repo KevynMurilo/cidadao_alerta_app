@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>cidadeemfoco</string>
-          <string>com.nyv3k.cidadeemfoco</string>
+          <string>br.gov.formosa.formosaEmFoco</string>
         </array>
       </dict>
     </array>
