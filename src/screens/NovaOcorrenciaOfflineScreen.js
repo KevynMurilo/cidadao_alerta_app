@@ -111,6 +111,10 @@ const NovaOcorrenciaOfflineScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                <Ionicons name="arrow-back" size={28} color={COLORS.textPrimary} />
+            </TouchableOpacity>
+
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
@@ -204,9 +208,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  backButton: {
+    position: 'absolute',
+    top: 15,
+    left: 15,
+    zIndex: 10,
+    padding: 5,
+  },
   content: {
     padding: 20,
-    paddingTop: 30,
+    paddingTop: 50,
     flexGrow: 1,
   },
   headerTitle: {
@@ -214,6 +225,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 20,
     color: COLORS.textPrimary,
+    textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 18,

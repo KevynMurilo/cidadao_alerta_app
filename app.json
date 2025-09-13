@@ -12,27 +12,26 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "plugins": [
       [
         "expo-image-picker",
         {
-          "photosPermission": "A app necessita de acesso às suas fotos para que possa anexar evidências nas ocorrências.",
-          "cameraPermission": "A app necessita de acesso à sua câmera para que possa tirar fotos para as ocorrências."
+          "photosPermission": "O app precisa acessar suas fotos para anexar evidências nas ocorrências.",
+          "cameraPermission": "O app precisa acessar sua câmera para tirar fotos das ocorrências."
         }
       ],
       "expo-sqlite",
-      "expo-font"
+      "expo-font",
+      "expo-location"
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "br.gov.formosa.formosaEmFoco",
       "infoPlist": {
-        "NSCameraUsageDescription": "A app necessita de acesso à sua câmera para tirar fotos.",
-        "NSPhotoLibraryUsageDescription": "A app necessita de acesso à galeria para selecionar fotos.",
-        "NSLocationWhenInUseUsageDescription": "A app necessita da sua localização para exibir ocorrências próximas."
+        "NSCameraUsageDescription": "O app precisa acessar sua câmera para tirar fotos das ocorrências.",
+        "NSPhotoLibraryUsageDescription": "O app precisa acessar suas fotos para anexar evidências nas ocorrências.",
+        "NSLocationWhenInUseUsageDescription": "O app precisa da sua localização para mostrar ocorrências próximas e registrar onde a foto foi tirada."
       }
     },
     "android": {
@@ -41,15 +40,20 @@
         "foregroundImage": "./src/assets/logo.png",
         "backgroundColor": "#ffffff"
       },
-      "icon": "./src/assets/logo.png",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
-      ]
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "permissionMessages": {
+        "CAMERA": "O app precisa acessar sua câmera para tirar fotos das ocorrências.",
+        "READ_EXTERNAL_STORAGE": "O app precisa acessar seus arquivos para anexar evidências.",
+        "WRITE_EXTERNAL_STORAGE": "O app precisa salvar imagens capturadas.",
+        "ACCESS_COARSE_LOCATION": "O app precisa da sua localização aproximada para mostrar ocorrências próximas.",
+        "ACCESS_FINE_LOCATION": "O app precisa da sua localização exata para registrar onde a foto foi tirada."
+      }
     },
     "web": {
       "favicon": "./src/assets/logo.png"
@@ -59,33 +63,5 @@
         "projectId": "3c60811d-99ec-4474-b34d-faf001171804"
       }
     }
-  },
-  "cli": {
-    "version": ">= 3.0.0",
-    "appVersionSource": "remote"
-  },
-  "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
-    },
-    "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
-    },
-    "production": {
-      "autoIncrement": true,
-      "android": {
-        "buildType": "app-bundle"
-      }
-    }
-  },
-  "submit": {
-    "production": {}
   }
 }

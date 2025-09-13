@@ -97,8 +97,12 @@ const HomeScreen = ({ navigation }) => {
     fetchOcorrencias({ status: statusFilter, categoryId: categoriaIdFilter });
   };
 
-  const handleCardPress = (item) => {
-    navigation.navigate('DetalheOcorrencia', { id: item.id });
+  const handleViewOnMap = (item) => {
+    if (item.lat && item.lon) {
+      navigation.navigate('Mapa', { singleOcorrencia: item });
+    } else {
+      Alert.alert('Localização indisponível', 'Esta ocorrência não possui coordenadas para ser exibida no mapa.');
+    }
   };
 
   const openModalWithType = (type) => {
@@ -119,7 +123,6 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header fixo */}
       <View style={styles.headerContainer}>
         <Text style={styles.screenTitle}>Feed de Ocorrências</Text>
         <View style={styles.filterBar}>
@@ -160,7 +163,6 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Lista */}
       <View style={styles.container}>
         <FlatList
           data={ocorrencias}
@@ -169,7 +171,9 @@ const HomeScreen = ({ navigation }) => {
             <OcorrenciaCard
               item={item}
               imagem={imagens[item.id]}
-              onPress={() => handleCardPress(item)}
+              onPress={() => handleViewOnMap(item)}
+              texto="Ver no Mapa"
+              iconName="map-marker-outline"
             />
           )}
           contentContainerStyle={styles.listContent}
@@ -259,7 +263,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.primary,
   },
-  listContent: { paddingHorizontal: 20, paddingBottom: 110, paddingTop: 10 },
+  listContent: { paddingHorizontal: 20, paddingBottom: 110, paddingTop: 16 },
   separator: { height: 16 },
   emptyContainer: {
     justifyContent: 'center',

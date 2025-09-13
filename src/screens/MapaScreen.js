@@ -12,11 +12,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useFocusEffect } from '@react-navigation/native';
-
 import {
   getOcorrenciaClusters,
   getOcorrenciaFoto,
@@ -53,26 +52,23 @@ const DateSelector = ({ label, date, onChange }) => {
   );
 };
 
-const MapaScreen = ({ navigation }) => {
+const MapaScreen = ({ navigation, route }) => {
   const webViewRef = useRef(null);
-
   const [clusters, setClusters] = useState([]);
+  const [singleOcorrencia, setSingleOcorrencia] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [ocorrenciasSelecionadas, setOcorrenciasSelecionadas] = useState([]);
   const [imagens, setImagens] = useState({});
-  const [modalLoading, setModalLoading] = useState(false); 
-
+  const [modalLoading, setModalLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState(null);
   const [categoriaFilter, setCategoriaFilter] = useState(null);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
-
   const [tempStatusFilter, setTempStatusFilter] = useState(null);
   const [tempCategoriaFilter, setTempCategoriaFilter] = useState(null);
   const [tempStartDate, setTempStartDate] = useState(null);
   const [tempEndDate, setTempEndDate] = useState(null);
-
   const [filterModal, setFilterModal] = useState(false);
   const [isWebviewReady, setWebviewReady] = useState(false);
 
@@ -89,38 +85,66 @@ const MapaScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      const fetchData = async () => {
-        setLoading(true);
-        try {
-          await Location.requestForegroundPermissionsAsync();
-          const params = { radiusMeters: 200 };
-          if (statusFilter) params.status = statusFilter;
-          if (categoriaFilter) params.category = categoriaFilter;
-          if (startDate) params.startDate = startDate.toISOString();
-          if (endDate) params.endDate = endDate.toISOString();
-          const response = await getOcorrenciaClusters(params);
-          setClusters(response.data?.data || []);
-        } catch (error) {
-          Alert.alert('Erro ao carregar mapa', error.message);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchData();
-    }, [statusFilter, categoriaFilter, startDate, endDate])
+      const singleOcorrenciaParam = route.params?.singleOcorrencia;
+
+      if (singleOcorrenciaParam) {
+        setSingleOcorrencia(singleOcorrenciaParam);
+        setClusters([]);
+      } else {
+        const fetchAllClusters = async () => {
+          setLoading(true);
+          try {
+            await Location.requestForegroundPermissionsAsync();
+            const params = { radiusMeters: 200 };
+            if (statusFilter) params.status = statusFilter;
+            if (categoriaFilter) params.category = categoriaFilter;
+            if (startDate) params.startDate = startDate.toISOString();
+            if (endDate) params.endDate = endDate.toISOString();
+            const response = await getOcorrenciaClusters(params);
+            setClusters(response.data?.data || []);
+          } catch (error) {
+            Alert.alert('Erro ao carregar mapa', error.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchAllClusters();
+      }
+    }, [statusFilter, categoriaFilter, startDate, endDate, route.params?.singleOcorrencia])
   );
 
   useEffect(() => {
-    if (isWebviewReady && webViewRef.current && clusters) {
-      const script = `
-        if (window.addMarkers) {
+    if (isWebviewReady && webViewRef.current) {
+      if (singleOcorrencia) {
+        const singleCluster = [
+          {
+            lat: singleOcorrencia.lat,
+            lon: singleOcorrencia.lon,
+            count: 1,
+            items: [singleOcorrencia],
+          },
+        ];
+        const script = `
+          window.addMarkers(${JSON.stringify(singleCluster)});
+          window.focusOnPoint(${singleOcorrencia.lat}, ${singleOcorrencia.lon}, 17);
+          true;
+        `;
+        webViewRef.current.injectJavaScript(script);
+        setLoading(false);
+      } else if (clusters) {
+        const script = `
           window.addMarkers(${JSON.stringify(clusters)});
-        }
-        true;
-      `;
-      webViewRef.current.injectJavaScript(script);
+          true;
+        `;
+        webViewRef.current.injectJavaScript(script);
+      }
     }
-  }, [clusters, isWebviewReady]);
+  }, [clusters, isWebviewReady, singleOcorrencia]);
+
+  const handleShowAll = () => {
+    setSingleOcorrencia(null);
+    navigation.setParams({ singleOcorrencia: null });
+  };
 
   const abrirLista = async (items) => {
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
@@ -160,6 +184,7 @@ const MapaScreen = ({ navigation }) => {
     setStartDate(tempStartDate);
     setEndDate(tempEndDate);
     setFilterModal(false);
+    handleShowAll();
   };
 
   const limparFiltros = () => {
@@ -171,9 +196,10 @@ const MapaScreen = ({ navigation }) => {
     setCategoriaFilter(null);
     setStartDate(null);
     setEndDate(null);
+    handleShowAll();
   };
 
-  const htmlContent = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" /><script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script><style>body, #map { margin:0; padding:0; width:100vw; height:100vh; background-color:#f0f4f7; } .custom-cluster-icon { background-color:#3a86f4; border-radius:50%; width:40px!important; height:40px!important; display:flex; justify-content:center; align-items:center; border:2px solid white; } .custom-cluster-icon span { color:white; font-weight:bold; font-size:16px; font-family:sans-serif; }</style></head><body><div id="map"></div><script>const map = L.map('map').setView([-15.5369, -47.3316], 14); L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png?api_key=742a8424-247b-47d7-afb6-1e523dc5777a', { maxZoom:19 }).addTo(map); let markers = []; window.addMarkers = function(clusters){ markers.forEach(m => map.removeLayer(m)); markers = []; clusters.forEach(c=>{ const latLng=[c.lat,c.lon]; let marker; if(c.count>1){ const icon=L.divIcon({ className:'custom-cluster-icon', html:'<div><span>'+c.count+'</span></div>', iconSize:[40,40] }); marker=L.marker(latLng,{icon}); }else{ marker=L.marker(latLng); } marker.on('click',()=>{ window.ReactNativeWebView.postMessage(JSON.stringify(c.items)) }); marker.addTo(map); markers.push(marker); }); };</script></body></html>`;
+  const htmlContent = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" /><script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script><style>body, #map { margin:0; padding:0; width:100vw; height:100vh; background-color:#f0f4f7; } .custom-cluster-icon { background-color:#3a86f4; border-radius:50%; width:40px!important; height:40px!important; display:flex; justify-content:center; align-items:center; border:2px solid white; } .custom-cluster-icon span { color:white; font-weight:bold; font-size:16px; font-family:sans-serif; }</style></head><body><div id="map"></div><script>const map = L.map('map', { zoomControl: false }).setView([-15.5369, -47.3316], 14); L.control.zoom({ position: 'bottomleft' }).addTo(map); L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png?api_key=742a8424-247b-47d7-afb6-1e523dc5777a', { maxZoom:19 }).addTo(map); let markers = []; window.addMarkers = function(clusters){ markers.forEach(m => map.removeLayer(m)); markers = []; if (!clusters) return; clusters.forEach(c=>{ const latLng=[c.lat,c.lon]; let marker; if(c.count>1){ const icon=L.divIcon({ className:'custom-cluster-icon', html:'<div><span>'+c.count+'</span></div>', iconSize:[40,40] }); marker=L.marker(latLng,{icon}); }else{ marker=L.marker(latLng); } marker.on('click',()=>{ window.ReactNativeWebView.postMessage(JSON.stringify(c.items)) }); marker.addTo(map); markers.push(marker); }); }; window.focusOnPoint = function(lat, lon, zoom) { map.setView([lat, lon], zoom || 15); };</script></body></html>`;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -193,12 +219,15 @@ const MapaScreen = ({ navigation }) => {
         )}
 
         <View style={styles.fabContainer}>
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={() => setFilterModal(true)}
-          >
-            <Ionicons name="filter" size={24} color="#fff" />
-          </TouchableOpacity>
+          {singleOcorrencia ? (
+            <TouchableOpacity style={styles.fab} onPress={handleShowAll}>
+              <MaterialCommunityIcons name="map-search-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.fab} onPress={() => setFilterModal(true)}>
+              <Ionicons name="filter" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
         </View>
 
         <Modal
@@ -234,7 +263,7 @@ const MapaScreen = ({ navigation }) => {
                           tempStatusFilter === s && styles.selectedText,
                         ]}
                       >
-                        {s}
+                        {s.replace('_', ' ')}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -312,7 +341,6 @@ const MapaScreen = ({ navigation }) => {
                   <Ionicons name="close-circle" size={30} color="#e74c3c" />
                 </TouchableOpacity>
               </View>
-              {/* <-- MUDANÇA AQUI PARA MOSTRAR O LOADING */}
               {modalLoading ? (
                 <View style={styles.modalLoadingView}>
                   <ActivityIndicator size="large" color="#3a86f4" />
@@ -345,7 +373,7 @@ const styles = StyleSheet.create({
   },
   fabContainer: {
     position: 'absolute',
-    top: 10,
+    top: 20,
     right: 20,
     zIndex: 10,
   },
@@ -357,6 +385,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   modalOverlay: {
     flex: 1,

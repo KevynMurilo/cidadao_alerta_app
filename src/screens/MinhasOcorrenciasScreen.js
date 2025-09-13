@@ -14,6 +14,7 @@ import { getMinhasOcorrencias, getOcorrenciaFoto, createOcorrencia } from '../ap
 import { getPendingOcorrencias, removeOcorrenciaLocal } from '../localDB';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+// SOLUÇÃO DEFINITIVA: Importando a API legacy para garantir compatibilidade
 import * as FileSystem from 'expo-file-system/legacy';
 import OcorrenciaCard from '../components/OcorrenciaCard';
 import FilterModal from '../components/FilterModal';
@@ -47,7 +48,7 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     try {
       const base64 = await getOcorrenciaFoto(id);
       setImagens(prev => ({ ...prev, [id]: base64 }));
-    } catch {}
+    } catch { }
   };
 
   const fetchData = async () => {
@@ -96,43 +97,69 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     if (activeTab === 'ocorrencias') setStatusFilter(null);
   };
 
-  const handleCardPress = (item) => navigation.navigate('DetalheOcorrencia', { id: item.id });
+  const handleViewOnMap = (item) => {
+    if (item.lat && item.lon) {
+      navigation.navigate('Mapa', { singleOcorrencia: item });
+    } else {
+      Alert.alert('Localização indisponível', 'Esta ocorrência não possui coordenadas para ser exibida no mapa.');
+    }
+  };
 
   const sendOfflineOcorrencia = async (ocorrencia) => {
     try {
+      setLoading(true);
+      
+      // Usando o método da API legacy, que agora funcionará sem erros ou avisos
       const fileInfo = await FileSystem.getInfoAsync(ocorrencia.photoUri);
-      if (!fileInfo.exists) { Alert.alert("Erro", "Imagem não encontrada."); return; }
+
+      if (!fileInfo.exists) {
+        Alert.alert("Erro", "A imagem da ocorrência não foi encontrada no dispositivo.");
+        setLoading(false);
+        return;
+      }
+      
       const formData = new FormData();
       formData.append("description", ocorrencia.description);
       formData.append("lat", ocorrencia.lat);
       formData.append("lon", ocorrencia.lon);
+      formData.append("category", ocorrencia.categoryId);
+      
       const uriParts = ocorrencia.photoUri.split(".");
       const fileType = uriParts[uriParts.length - 1];
+      
       formData.append("photo", {
         uri: ocorrencia.photoUri,
         name: `photo.${fileType}`,
         type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
       });
-      formData.append("category", ocorrencia.categoryId);
+
       await createOcorrencia(formData);
       await removeOcorrenciaLocal(ocorrencia.id);
       Alert.alert("Sucesso!", "Ocorrência enviada!");
       fetchData();
     } catch (error) {
-      console.log(error);
-      Alert.alert("Erro", "Falha ao enviar ocorrência offline.");
+      console.error(error);
+      Alert.alert("Erro", "Falha ao enviar ocorrência offline");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const renderItem = ({ item }) => (
-    <OcorrenciaCard
-      item={item}
-      imagem={imagens[item.id] || item.photoUri}
-      onPress={activeTab === 'offline' && item.status === 'PENDING' ? () => sendOfflineOcorrencia(item) : () => handleCardPress(item)}
-      texto={activeTab === 'offline' ? "Enviar" : "Ver Detalhes"}
-    />
-  );
+  const renderItem = ({ item }) => {
+    const isOfflineTab = activeTab === 'offline';
+    const isPending = isOfflineTab && item.status === 'PENDING';
 
+    return (
+      <OcorrenciaCard
+        item={item}
+        imagem={imagens[item.id] || item.photoUri}
+        onPress={isPending ? () => sendOfflineOcorrencia(item) : () => handleViewOnMap(item)}
+        texto={isPending ? "Enviar" : "Ver no Mapa"}
+        iconName={isPending ? "cloud-upload-outline" : "map-marker-outline"}
+      />
+    );
+  };
+  
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>

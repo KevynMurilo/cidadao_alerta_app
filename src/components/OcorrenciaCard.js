@@ -10,15 +10,17 @@ const COLORS = {
     aberto: '#E74C3C',
     emAndamento: '#F39C12',
     finalizado: '#2ECC71',
+    white: '#FFFFFF',
 };
 
 const statusConfig = {
     ABERTO: { color: COLORS.aberto, text: 'Aberto', bg: '#fadbd8' },
     EM_ANDAMENTO: { color: COLORS.emAndamento, text: 'Em Andamento', bg: '#fdebd0' },
     FINALIZADO: { color: COLORS.finalizado, text: 'Finalizado', bg: '#d4efdf' },
+    PENDING: { color: COLORS.emAndamento, text: 'Pendente', bg: '#fdebd0' }
 };
 
-const OcorrenciaCard = ({ item, imagem, onPress, texto }) => {
+const OcorrenciaCard = ({ item, imagem, onPress, texto, iconName }) => {
     const config =
         statusConfig[item.status] || {
             color: COLORS.textSecondary,
@@ -61,20 +63,21 @@ const OcorrenciaCard = ({ item, imagem, onPress, texto }) => {
                     />
                     <Text style={styles.cardDate}>{dataFormatada}</Text>
                 </View>
-                {/* Botão de abrir detalhes */}
-            {onPress && (
-                <TouchableOpacity style={styles.detailButton} onPress={onPress}>
-                    <Text style={styles.detailButtonText}>
-                        {texto != null && texto !== '' ? texto : 'Ver Detalhes'}
-                    </Text>
-                    <MaterialCommunityIcons
-                        name="arrow-right-circle-outline"
-                        size={18}
-                        color={'#FFF'}
-                        style={{ marginLeft: 8 }}
-                    />
-                </TouchableOpacity>
-            )}
+
+                {/* O botão só aparece se a função 'onPress' for fornecida */}
+                {onPress && (
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={onPress}
+                    >
+                        <MaterialCommunityIcons
+                            name={iconName || 'arrow-right-circle-outline'}
+                            size={20}
+                            color={COLORS.white}
+                        />
+                        <Text style={styles.actionButtonText}>{texto || 'Ver Detalhes'}</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         </View>
     );
@@ -84,8 +87,7 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: COLORS.card,
         borderRadius: 16,
-        marginBottom: 20,
-        shadowColor: COLORS.textPrimary,
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.05,
         shadowRadius: 12,
@@ -111,22 +113,23 @@ const styles = StyleSheet.create({
     },
     cardCategory: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary, flex: 1 },
     cardDesc: { fontSize: 15, color: COLORS.textSecondary, lineHeight: 22, marginBottom: 16 },
-    cardFooter: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    cardFooter: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
     cardDate: { fontSize: 14, color: COLORS.textSecondary, marginLeft: 8 },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
     statusBadgeText: { fontSize: 12, fontWeight: 'bold' },
-    detailButton: {
+    actionButton: {
         flexDirection: 'row',
         backgroundColor: COLORS.primary,
-        paddingVertical: 10,
+        paddingVertical: 12,
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    detailButtonText: {
-        color: '#FFF',
+    actionButtonText: {
+        color: COLORS.white,
         fontWeight: 'bold',
         fontSize: 16,
+        marginLeft: 10,
     },
 });
 
