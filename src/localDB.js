@@ -7,7 +7,6 @@ export const initDB = async () => {
     db = await SQLite.openDatabaseAsync('ocorrencias.db');
   }
 
-  // Criar tabela de ocorrências
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS ocorrencias (
       id TEXT PRIMARY KEY,
@@ -22,12 +21,11 @@ export const initDB = async () => {
   `);
 };
 
-// ===== Ocorrências =====
 export const insertOcorrenciaLocal = async (ocorrencia) => {
   const { id, description, photoUri, lat, lon, categoryId, createdAt } = ocorrencia;
   await db.runAsync(
     `INSERT OR IGNORE INTO ocorrencias (id, description, photoUri, lat, lon, categoryId, createdAt, syncStatus)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, description, photoUri, lat, lon, categoryId, createdAt, 'PENDING']
   );
 };

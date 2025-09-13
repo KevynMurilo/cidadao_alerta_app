@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,7 +17,11 @@ import * as Location from 'expo-location';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { getOcorrenciaClusters, getOcorrenciaFoto } from '../api/ocorrencias';
+import {
+  getOcorrenciaClusters,
+  getOcorrenciaFoto,
+  getOcorrencia,
+} from '../api/ocorrencias';
 import OcorrenciaCard from '../components/OcorrenciaCard';
 import { CATEGORIES } from '../utils/categories';
 
@@ -57,6 +61,7 @@ const MapaScreen = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [ocorrenciasSelecionadas, setOcorrenciasSelecionadas] = useState([]);
   const [imagens, setImagens] = useState({});
+  const [modalLoading, setModalLoading] = useState(false); 
 
   const [statusFilter, setStatusFilter] = useState(null);
   const [categoriaFilter, setCategoriaFilter] = useState(null);
@@ -74,10 +79,12 @@ const MapaScreen = ({ navigation }) => {
   const fetchImagem = async (id) => {
     try {
       const base64 = await getOcorrenciaFoto(id);
-      if (base64?.length < 500000) {
+      if (base64) {
         setImagens((prev) => ({ ...prev, [id]: base64 }));
       }
-    } catch {}
+    } catch (error) {
+      console.error(`Erro ao buscar imagem para o ID ${id}:`, error);
+    }
   };
 
   useFocusEffect(
@@ -86,23 +93,13 @@ const MapaScreen = ({ navigation }) => {
         setLoading(true);
         try {
           await Location.requestForegroundPermissionsAsync();
-
           const params = { radiusMeters: 200 };
           if (statusFilter) params.status = statusFilter;
           if (categoriaFilter) params.category = categoriaFilter;
           if (startDate) params.startDate = startDate.toISOString();
           if (endDate) params.endDate = endDate.toISOString();
-
           const response = await getOcorrenciaClusters(params);
-          const lista = response.data?.data || [];
-
-          lista.forEach((cluster) => {
-            cluster.items.forEach((item) => {
-              if (item.photoUrl && item.photoUrl !== 'string') fetchImagem(item.id);
-            });
-          });
-
-          setClusters(lista);
+          setClusters(response.data?.data || []);
         } catch (error) {
           Alert.alert('Erro ao carregar mapa', error.message);
         } finally {
@@ -125,11 +122,31 @@ const MapaScreen = ({ navigation }) => {
     }
   }, [clusters, isWebviewReady]);
 
-  const abrirLista = (items) => {
+  const abrirLista = async (items) => {
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
-    if (parsedItems && parsedItems.length > 0) {
-      setOcorrenciasSelecionadas(parsedItems);
-      setModalVisible(true);
+    if (!parsedItems || parsedItems.length === 0) return;
+
+    setModalVisible(true);
+    setModalLoading(true);
+    setOcorrenciasSelecionadas([]);
+
+    try {
+      const promises = parsedItems.map((item) => getOcorrencia(item.id));
+      const results = await Promise.all(promises);
+      const ocorrenciasCompletas = results.map((res) => res.data.data);
+
+      setOcorrenciasSelecionadas(ocorrenciasCompletas);
+
+      ocorrenciasCompletas.forEach((item) => {
+        if (item.photoUrl && item.photoUrl !== 'string') {
+          fetchImagem(item.id);
+        }
+      });
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível carregar os detalhes das ocorrências.');
+      setModalVisible(false);
+    } finally {
+      setModalLoading(false);
     }
   };
 
@@ -156,46 +173,7 @@ const MapaScreen = ({ navigation }) => {
     setEndDate(null);
   };
 
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-      <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-      <style>
-        body, #map { margin:0; padding:0; width:100vw; height:100vh; background-color:#f0f4f7; }
-        .custom-cluster-icon { background-color:#3a86f4; border-radius:50%; width:40px!important; height:40px!important; display:flex; justify-content:center; align-items:center; border:2px solid white; }
-        .custom-cluster-icon span { color:white; font-weight:bold; font-size:16px; font-family:sans-serif; }
-      </style>
-    </head>
-    <body>
-      <div id="map"></div>
-      <script>
-        const map = L.map('map').setView([-15.5369, -47.3316], 14);
-        L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png?api_key=742a8424-247b-47d7-afb6-1e523dc5777a', { maxZoom:19 }).addTo(map);
-        let markers = [];
-        window.addMarkers = function(clusters){
-          markers.forEach(m => map.removeLayer(m));
-          markers = [];
-          clusters.forEach(c=>{
-            const latLng=[c.lat,c.lon];
-            let marker;
-            if(c.count>1){
-              const icon=L.divIcon({ className:'custom-cluster-icon', html:'<div><span>'+c.count+'</span></div>', iconSize:[40,40] });
-              marker=L.marker(latLng,{icon});
-            }else{
-              marker=L.marker(latLng);
-            }
-            marker.on('click',()=>{ window.ReactNativeWebView.postMessage(JSON.stringify(c.items)) });
-            marker.addTo(map);
-            markers.push(marker);
-          });
-        };
-      </script>
-    </body>
-    </html>
-  `;
+  const htmlContent = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" /><script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script><style>body, #map { margin:0; padding:0; width:100vw; height:100vh; background-color:#f0f4f7; } .custom-cluster-icon { background-color:#3a86f4; border-radius:50%; width:40px!important; height:40px!important; display:flex; justify-content:center; align-items:center; border:2px solid white; } .custom-cluster-icon span { color:white; font-weight:bold; font-size:16px; font-family:sans-serif; }</style></head><body><div id="map"></div><script>const map = L.map('map').setView([-15.5369, -47.3316], 14); L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png?api_key=742a8424-247b-47d7-afb6-1e523dc5777a', { maxZoom:19 }).addTo(map); let markers = []; window.addMarkers = function(clusters){ markers.forEach(m => map.removeLayer(m)); markers = []; clusters.forEach(c=>{ const latLng=[c.lat,c.lon]; let marker; if(c.count>1){ const icon=L.divIcon({ className:'custom-cluster-icon', html:'<div><span>'+c.count+'</span></div>', iconSize:[40,40] }); marker=L.marker(latLng,{icon}); }else{ marker=L.marker(latLng); } marker.on('click',()=>{ window.ReactNativeWebView.postMessage(JSON.stringify(c.items)) }); marker.addTo(map); markers.push(marker); }); };</script></body></html>`;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -214,7 +192,6 @@ const MapaScreen = ({ navigation }) => {
           </View>
         )}
 
-        {/* Botão azul superior direito */}
         <View style={styles.fabContainer}>
           <TouchableOpacity
             style={styles.fab}
@@ -224,7 +201,6 @@ const MapaScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Modal de filtros */}
         <Modal
           visible={filterModal}
           animationType="slide"
@@ -241,7 +217,6 @@ const MapaScreen = ({ navigation }) => {
                   </TouchableOpacity>
                 </View>
 
-                {/* Status */}
                 <View style={styles.filterGroup}>
                   <Text style={styles.filterLabel}>Status</Text>
                   {['ABERTO', 'EM_ANDAMENTO', 'FINALIZADO'].map((s) => (
@@ -265,7 +240,6 @@ const MapaScreen = ({ navigation }) => {
                   ))}
                 </View>
 
-                {/* Categoria */}
                 <View style={styles.filterGroup}>
                   <Text style={styles.filterLabel}>Categoria</Text>
                   {CATEGORIES.map((c) => (
@@ -289,7 +263,6 @@ const MapaScreen = ({ navigation }) => {
                   ))}
                 </View>
 
-                {/* Período */}
                 <View style={styles.filterGroup}>
                   <Text style={styles.filterLabel}>Período</Text>
                   <DateSelector
@@ -305,7 +278,6 @@ const MapaScreen = ({ navigation }) => {
                 </View>
               </ScrollView>
 
-              {/* Botões fixos respeitando SafeArea */}
               <SafeAreaView edges={['bottom']}>
                 <View style={styles.actions}>
                   <TouchableOpacity
@@ -326,7 +298,6 @@ const MapaScreen = ({ navigation }) => {
           </View>
         </Modal>
 
-        {/* Modal de ocorrências */}
         <Modal
           visible={modalVisible}
           animationType="slide"
@@ -336,21 +307,24 @@ const MapaScreen = ({ navigation }) => {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {ocorrenciasSelecionadas.length > 1
-                    ? `${ocorrenciasSelecionadas.length} Ocorrências no Local`
-                    : 'Detalhes da Ocorrência'}
-                </Text>
+                <Text style={styles.modalTitle}>Detalhes da Ocorrência</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close-circle" size={30} color="#e74c3c" />
                 </TouchableOpacity>
               </View>
-              <FlatList
-                data={ocorrenciasSelecionadas}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderItem}
-                contentContainerStyle={{ padding: 10 }}
-              />
+              {/* <-- MUDANÇA AQUI PARA MOSTRAR O LOADING */}
+              {modalLoading ? (
+                <View style={styles.modalLoadingView}>
+                  <ActivityIndicator size="large" color="#3a86f4" />
+                </View>
+              ) : (
+                <FlatList
+                  data={ocorrenciasSelecionadas}
+                  keyExtractor={(item) => item.id.toString()}
+                  renderItem={renderItem}
+                  contentContainerStyle={{ padding: 10 }}
+                />
+              )}
             </View>
           </View>
         </Modal>
@@ -456,12 +430,23 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 15,
     borderBottomWidth: 1,
     borderColor: '#ddd',
     backgroundColor: '#fff',
   },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+  },
+  modalLoadingView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 export default MapaScreen;

@@ -90,7 +90,6 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         setUserToken(null);
         setUserInfo(null);
-        setNeedsVerification(null);
         await AsyncStorage.removeItem('userToken');
         await AsyncStorage.removeItem('userInfo');
     };

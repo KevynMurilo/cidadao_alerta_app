@@ -14,7 +14,7 @@ import { getMinhasOcorrencias, getOcorrenciaFoto, createOcorrencia } from '../ap
 import { getPendingOcorrencias, removeOcorrenciaLocal } from '../localDB';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import OcorrenciaCard from '../components/OcorrenciaCard';
 import FilterModal from '../components/FilterModal';
 import { CATEGORIES } from '../utils/categories';
@@ -136,7 +136,6 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Tabs */}
         <View style={styles.tabContainer}>
           <TouchableOpacity style={[styles.tab, activeTab === 'ocorrencias' && styles.activeTab]} onPress={() => setActiveTab('ocorrencias')}>
             <Text style={[styles.tabText, activeTab === 'ocorrencias' && styles.activeTabText]}>Minhas Ocorrências</Text>
@@ -146,7 +145,6 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Filters */}
         <View style={styles.filterBar}>
           <TouchableOpacity style={styles.filterPill} onPress={() => { setActiveFilterType('category'); setFilterModalVisible(true); }}>
             <Text style={styles.filterPillText}>
@@ -169,7 +167,6 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
           )}
         </View>
 
-        {/* Lista */}
         {loading ? (
           <ActivityIndicator style={{ flex: 1 }} size="large" color={COLORS.primary} />
         ) : (
@@ -189,7 +186,6 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
         )}
       </View>
 
-      {/* Filter Modal */}
       <FilterModal
         visible={isFilterModalVisible}
         onClose={() => setFilterModalVisible(false)}
