@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
   primary: '#4A90E2',
@@ -21,6 +22,7 @@ const FilterModal = ({
   activeFilterType = 'all', 
 }) => {
   const [tempFilters, setTempFilters] = useState({});
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
@@ -95,13 +97,13 @@ const FilterModal = ({
                 ))}
               </View>
             )}
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
-                <Text style={styles.applyText}>Aplicar</Text>
-              </TouchableOpacity>
-            </View>
           </ScrollView>
+
+          <View style={[styles.modalActions, { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }]}>
+            <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
+              <Text style={styles.applyText}>Aplicar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>

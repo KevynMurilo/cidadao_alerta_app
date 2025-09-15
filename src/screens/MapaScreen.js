@@ -175,7 +175,9 @@ const MapaScreen = ({ navigation, route }) => {
   };
 
   const renderItem = ({ item }) => (
-    <OcorrenciaCard item={item} imagem={imagens[item.id]} />
+    <View style={styles.card}>
+      <OcorrenciaCard item={item} imagem={imagens[item.id]} />
+    </View>
   );
 
   const handleApplyFilters = () => {
@@ -350,7 +352,7 @@ const MapaScreen = ({ navigation, route }) => {
                   data={ocorrenciasSelecionadas}
                   keyExtractor={(item) => item.id.toString()}
                   renderItem={renderItem}
-                  contentContainerStyle={{ padding: 10 }}
+                  contentContainerStyle={{ padding: 15 }}
                 />
               )}
             </View>
@@ -364,6 +366,9 @@ const MapaScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   container: { flex: 1 },
+  card: {
+    marginBottom: 15,
+  },
   map: { ...StyleSheet.absoluteFillObject },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

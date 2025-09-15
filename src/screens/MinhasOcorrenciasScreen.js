@@ -14,7 +14,6 @@ import { getMinhasOcorrencias, getOcorrenciaFoto, createOcorrencia } from '../ap
 import { getPendingOcorrencias, removeOcorrenciaLocal } from '../localDB';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-// SOLUÇÃO DEFINITIVA: Importando a API legacy para garantir compatibilidade
 import * as FileSystem from 'expo-file-system/legacy';
 import OcorrenciaCard from '../components/OcorrenciaCard';
 import FilterModal from '../components/FilterModal';
@@ -29,6 +28,8 @@ const COLORS = {
   white: '#FFFFFF',
   border: '#E2E8F0',
 };
+
+const ListItemSeparator = () => <View style={styles.separator} />;
 
 const MinhasOcorrenciasScreen = ({ navigation }) => {
   const { userInfo } = useContext(AuthContext);
@@ -48,7 +49,7 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     try {
       const base64 = await getOcorrenciaFoto(id);
       setImagens(prev => ({ ...prev, [id]: base64 }));
-    } catch { }
+    } catch {}
   };
 
   const fetchData = async () => {
@@ -109,7 +110,6 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
     try {
       setLoading(true);
       
-      // Usando o método da API legacy, que agora funcionará sem erros ou avisos
       const fileInfo = await FileSystem.getInfoAsync(ocorrencia.photoUri);
 
       if (!fileInfo.exists) {
@@ -201,7 +201,8 @@ const MinhasOcorrenciasScreen = ({ navigation }) => {
             data={activeTab === 'ocorrencias' ? ocorrencias : offlineOcorrencias}
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderItem}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={styles.listContent}
+            ItemSeparatorComponent={ListItemSeparator}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>
@@ -246,7 +247,8 @@ const styles = StyleSheet.create({
   activeTab: { borderBottomColor: COLORS.primary },
   tabText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 16 },
   activeTabText: { color: COLORS.primary },
-  list: { paddingHorizontal: 20, paddingBottom: 110, paddingTop: 16 },
+  listContent: { paddingHorizontal: 20, paddingBottom: 110, paddingTop: 16 },
+  separator: { height: 16 },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   emptyText: { textAlign: 'center', color: COLORS.textSecondary, fontSize: 16 },
   filterBar: {
