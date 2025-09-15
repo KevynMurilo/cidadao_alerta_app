@@ -7,7 +7,7 @@ export const CATEGORIES = [
   // { id: "ESTACIONAMENTO_IRREGULAR", name: "Estacionamento irregular", icon: "car-off" },
   // { id: "SINALIZACAO", name: "Sinalização", icon: "alert" },
   // { id: "ILUMINACAO_PUBLICA", name: "Iluminação pública", icon: "lightbulb-on-outline" },
-  { id: "TAPA_BURACO", name: "Tapa buraco", icon: "tools" },
+  { id: "TAPA_BURACO", name: "Tapa buraco", icon: "road" },
   { id: "OBRA_IRREGULAR", name: "Obra irregular", icon: "hammer-wrench" },
   { id: "OUVIDORIA", name: "Ouvidoria", icon: "account-voice" },
   // { id: "OUTROS", name: "Outros", icon: "alert-circle-outline" },
